@@ -7,8 +7,6 @@ from .samples import Sample
 
 
 class BaseProcessor(ABC):
-    INPUT_TYPES = ()
-    OUTPUT_TYPE = None
     """Baseclass for a processor from the feature extraction pipeline"""
 
     def __init__(self, **kwargs):
@@ -16,17 +14,35 @@ class BaseProcessor(ABC):
         # ordering the kwargs by name to ensure a consistent hash value
         self.ordered_kwargs = tuple(sorted(list(kwargs.items()),
                                            key=lambda x: x[0]))
+        self._current_sample: Sample = None
 
     def accepts(self, input_type):
-        if self.INPUT_TYPES:
-            return input_type in self.INPUT_TYPES
-        else:
+        try:
+            own_input_type = self.process.__annotations__["sample_data"]
+            if isinstance(own_input_type, list):
+                return input_type in own_input_type
+            elif own_input_type == Any:
+                return True
+            else:
+                return own_input_type == input_type
+        except KeyError:
             return True
 
     def outputs(self):
-        return self.OUTPUT_TYPE
+        try:
+            return self.process.__annotations__["return"]
+        except ValueError:
+            return Any
 
-    def process(self, sample: Sample, sample_data):
+    @property
+    def current_sample(self):
+        return self._current_sample
+
+    @current_sample.setter
+    def current_sample(self, sample: Sample):
+        self.current_sample = sample
+
+    def process(self, sample_data: Any) -> Any:
         """Processes just one sample"""
         raise NotImplemented()
 
@@ -68,7 +84,8 @@ class SampleProcessor(BaseProcessor):
             # - if not, we just replace the processed output with None
             # and print an error message
             try:
-                processed_sample = self.process(sample, sample_data)
+                self.current_sample = sample
+                processed_sample = self.process(sample_data)
             except Exception as e:
                 if fail_on_error:
                     tb = sys.exc_info()[2]

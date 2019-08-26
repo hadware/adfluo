@@ -1,18 +1,15 @@
-import logging
 from enum import Enum
-from itertools import chain
-from typing import List, Union, Set, Iterable, Dict
-
-from collections import OrderedDict
-
 import sys
+from collections import OrderedDict
+from enum import Enum
+from typing import List, Union, Dict
+
+from tqdm import tqdm
 
 from .extraction_tree import ProcessorsTree
 from .loader import DatasetLoader
-from .processors import BaseProcessor
 from .pipeline import ExtractionPipeline
-
-from tqdm import tqdm
+from .processors import BaseProcessor
 
 
 class ExtractionType(Enum):

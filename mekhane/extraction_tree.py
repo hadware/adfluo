@@ -85,6 +85,15 @@ class FeatureLeaf(Node):
         return iter(self.parent_node)
 
 
+class RootNode(Node):
+    """This node is a "passthrough" node that allows to have a unified tree"""
+
+    def __init__(self, feat_input: str):
+        super().__init__(tag=feat_input, identifier=feat_input)
+
+        # TODO
+
+
 class ProcessorsTree(Tree):
     def __init__(self, fail_on_error: bool):
         super().__init__()
