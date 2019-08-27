@@ -7,7 +7,20 @@ from .processors import BaseProcessor
 from .samples import Sample
 
 
-class ProcessorNode(Node):
+class BackReferencedNodeMixin(Node):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.parent_node: Node = None
+
+    def set_parent_node(self, tree: 'ProcessorsTree'):
+        """The parent node reference has to be set "by hand" as it is not
+        set during the build time of the tree."""
+        if not self.is_root():
+            self.parent_node = tree[self.bpointer]
+
+
+class ProcessorNode(BackReferencedNodeMixin, Node):
     """A processor node basically wraps a processor, and iterating
     upon that node will lazilly call the processor on the current sample
     being 'pulled' from the node. Nodes that have several child nodes
@@ -18,21 +31,8 @@ class ProcessorNode(Node):
         self.proc = processor
         self.fail_on_error = fail_on_error
         self.sample_iter = None
-        self.iter_call = 0
-        self.samples_cache = None
-        self.parent_node = None
-
-    def set_sample_iter(self, sample_iter: Iterable[Tuple[Sample, Any]]):
-        """Setting the reference to the input sample interator. This
-        is only called on the root node"""
-        self.sample_iter = self.proc(
-            sample_iter, fail_on_error=self.fail_on_error)
-
-    def set_parent_node(self, tree: 'ProcessorsTree'):
-        """The parent node reference has to be set "by hand" as it is not
-        set during the build time of the tree."""
-        if not self.is_root():
-            self.parent_node = tree[self.bpointer]
+        self.samples_cache: Dict[Sample, Any] = {}
+        self.samples_call: Dict[Sample, int] = {}
 
     def __iter__(self):
         # Sample iter is the iterator of the parent node, wrapped
@@ -70,13 +70,27 @@ class ProcessorNode(Node):
                 for sample_couple in samples_it:
                     yield sample_couple
 
+    def __call__(self, sample: Sample):
+        if sample in self.samples_cache:
+            cached_output = self.samples_cache[sample]
+            self.samples_call[sample] -= 1
+            if self.samples_call[sample] <= 0:
+                del self.samples_cache[sample]
+            return cached_output
+        else:
+            output = self.proc()
+        # TODO : process output from parent node. If node has several children,
+        #  cache result for that one sample using the sample_id as a key
+        #  the cached result should be cleaned when all the child have retrieved the
+        #  processed result
+
 
 class FeatureLeaf(Node):
     """Doesn't do any processing, just here as a special kind of node from
     which to pull samples for a specific feature"""
     def __init__(self, feature: str):
         super().__init__(tag=feature, identifier=feature)
-        self.parent_node = None
+        self.parent_node: ProcessorNode = None
 
     def set_parent_node(self, tree: 'ProcessorsTree'):
         self.parent_node = tree[self.bpointer]
@@ -84,22 +98,36 @@ class FeatureLeaf(Node):
     def __iter__(self):
         return iter(self.parent_node)
 
+    def __call__(self, sample: Sample):
+        return self.parent_node(sample)
+        # TODO: should be called upon a sample, and should propagate the call to the parent node
+
 
 class RootNode(Node):
     """This node is a "passthrough" node that allows to have a unified tree"""
+    pass
+
+
+class FeatureInputNode(Node):
+    """This node is a "passthrough" node who's only job is to retrieve the input data from the
+    sample in the dataset, and then cache it"""
 
     def __init__(self, feat_input: str):
+        # TODO : check what identifier's purpose is in the treelib doc again
         super().__init__(tag=feat_input, identifier=feat_input)
 
-        # TODO
+    def __call__(self, sample: Sample):
+        return sample.get_data(self.tag)
 
 
 class ProcessorsTree(Tree):
     def __init__(self, fail_on_error: bool):
         super().__init__()
         self.fail_on_error = fail_on_error
+        self.add_node(RootNode())
 
     def add_pipeline(self, processors: List[BaseProcessor], feature: str):
+        # TODO : the input data name should be passed as well, and the root node
         assert len(processors) > 0
         parent_node = self.get_node(self.root)
         proc_iter = iter(processors)

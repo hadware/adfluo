@@ -29,6 +29,9 @@ class Sample(ABC):
     def id(self):
         pass
 
+    def __hash__(self):
+        return hash(self.id)
+
     def get_data(self, data_name: str):
         """This method should be overriden. Depending on the data that is being
         'asked', returns the appropriate `

@@ -112,6 +112,7 @@ class Extractor:
             drop_on_save)
 
     def _build_extraction_trees(self):
+        # TODO : simplfy into a single extraction tree
         # building extraction trees
         features_groups = OrderedDict()
         self.extraction_order = list()
@@ -179,6 +180,8 @@ class Extractor:
         :param features: If not None, only the listed features are to be
         extracted.
         """
+        # TODO : add a feature_wise and sample_wise option to select if the extraction
+        #  should be done "along" the samples or the features
         if self.needs_scheduling:
             self._build_extraction_trees()
 
