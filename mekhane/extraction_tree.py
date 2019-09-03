@@ -3,6 +3,7 @@ from itertools import cycle
 from treelib import Tree, Node
 from typing import List, Generator, Any, Iterable, Tuple, Dict
 
+from mekhane.loader import DatasetLoader
 from .processors import BaseProcessor
 from .samples import Sample
 
@@ -105,10 +106,17 @@ class FeatureLeaf(Node):
 
 class RootNode(Node):
     """This node is a "passthrough" node that allows to have a unified tree"""
-    pass
+
+    def __init__(self):
+        super().__init__(tag="root")
+        self.dataset: DatasetLoader = None
+
+    def __iter__(self):
+        for sample in self.dataset:
+            yield sample
 
 
-class FeatureInputNode(Node):
+class FeatureInputNode(BackReferencedNodeMixin, Node):
     """This node is a "passthrough" node who's only job is to retrieve the input data from the
     sample in the dataset, and then cache it"""
 
@@ -116,8 +124,9 @@ class FeatureInputNode(Node):
         # TODO : check what identifier's purpose is in the treelib doc again
         super().__init__(tag=feat_input, identifier=feat_input)
 
-    def __call__(self, sample: Sample):
-        return sample.get_data(self.tag)
+    def __iter__(self):
+        for sample in iter(self.parent_node):
+            yield sample, sample.get_data(self.tag)
 
 
 class ProcessorsTree(Tree):
@@ -174,17 +183,17 @@ class ProcessorsTree(Tree):
         # each pipeline and each branch has to end with a feature leaf
         self.add_node(FeatureLeaf(feature), parent=parent_node)
 
-    def set_sample_iter(self, samples_couples: Iterable[Tuple[Sample, Any]]):
-        self.get_node(self.root).set_sample_iter(samples_couples)
-        for node in self.all_nodes_itr():
-            node.set_parent_node(self)
-
     def get_feature_order(self) -> List[str]:
         feature_leafs = [(node, self.depth(node))
                          for node in self.all_nodes_itr()
                          if isinstance(node, FeatureLeaf)]
         feature_leafs.sort(key=lambda x: x[1])
         return [feat.tag for feat, _ in feature_leafs]
+
+    def set_dataset(self, dataset: DatasetLoader):
+        self.root.dataset = dataset
+        for node in self.all_nodes_itr():
+            node.set_parent_node(self)
 
     def __call__(self, feature: str) -> Iterable:
         return iter(self.get_node(feature))

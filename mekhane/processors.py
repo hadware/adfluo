@@ -61,14 +61,15 @@ class BaseProcessor(ABC):
             return self.__class__.__name__
 
     @abstractmethod
-    def __call__(self, sample: Sample, sample_data: any, fail_on_error: bool) -> Any:
+    def __call__(self, samples_gen: Iterable, fail_on_error: bool) \
+            -> Generator[Any, None, None]:
         pass
 
 
 class SampleProcessor(BaseProcessor):
     """Processes one sample after the other, independently"""
 
-    def __call__(self, sample: Sample, sample_data: any, fail_on_error: bool) -> Any:
+    def __call__(self, samples_it: Iterable, fail_on_error: bool):
         for sample, sample_data in samples_it:
             # if the current sample being processed is None, the processor
             # acts as a passthrough
@@ -109,12 +110,14 @@ class BatchProcessor(BaseProcessor):
         store the results as instance attributes"""
         pass
 
-    def __call__(self, sample: Sample, sample_data: any, fail_on_error: bool) -> Any:
-        # TODO : solve the incoming problem with the new architecture
+    @abstractmethod
+    def __call__(self, samples_gen: Iterable, fail_on_error: bool) \
+            -> Generator[Any, None, None]:
         samples, samples_data = zip(*samples_gen)
         self.full_dataset_process(samples, samples_data)
         for sample, sample_data in zip(samples, samples_data):
-            yield sample, self.process(sample, sample_data)
+            self.current_sample = sample
+            yield sample, self.process(sample_data)
 
 
 ELEMENTS_ALIASES = {
