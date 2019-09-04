@@ -8,11 +8,18 @@ from .processors import BaseProcessor
 from .samples import Sample
 
 
-class BackReferencedNodeMixin(Node):
+class CachedNode(Node):
+    """A node that caches samples or sample data values, and flushes
+    the sample's cache once it's been 'retrieved' a sufficient amount
+    of time (corresponding to the number of children that node has)"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.parent_node: Node = None
+        self.samples_cache: Dict[Sample, Any] = {}
+        self.samples_call: Dict[Sample, int] = {}
+        self.parent_node = None
+        self.sample_iter: Iterable = None
 
     def set_parent_node(self, tree: 'ProcessorsTree'):
         """The parent node reference has to be set "by hand" as it is not
@@ -20,8 +27,66 @@ class BackReferencedNodeMixin(Node):
         if not self.is_root():
             self.parent_node = tree[self.bpointer]
 
+    def set_sample_iter(self):
+        pass
 
-class ProcessorNode(BackReferencedNodeMixin, Node):
+    def __iter__(self):
+
+        if self.sample_iter is None:
+            self.set_sample_iter()
+
+            # if the child count is 1, no caching is needed
+            if len(self.fpointer) == 1:
+                for sample_couple in self.sample_iter:
+                    yield sample_couple
+            else:
+                for sample, sample_data in iter(self.sample_iter):
+                    if sample in self.samples_cache:
+                        cached_output = self.samples_cache[sample]
+                        self.samples_call[sample] -= 1
+                        if self.samples_call[sample] <= 0:
+                            del self.samples_cache[sample]
+                        return cached_output
+                    else:
+                        raise KeyError("Sample not in cache")
+                # processing only once, and caching the samples
+                if self.iter_call == 0:
+                    self.iter_call += 1
+                    self.samples_cache = []
+                    for sample_couple in self.sample_iter:
+                        self.samples_cache.append(sample_couple)
+                        yield sample_couple
+
+                # until (not including) the last call on __iter__, we just
+                # output the cached nodes in the same order they are stored
+                elif 0 < self.iter_call < len(self.fpointer) - 1:
+                    self.iter_call += 1
+                    for sample_couple in self.samples_cache:
+                        yield sample_couple
+
+                # at the last call, we empty the cache (setting it to None,
+                # which lets the garbage collector do its job)
+                else:
+                    samples_it = iter(self.samples_cache)
+                    self.samples_cache = None  # freeing the cache
+                    for sample_couple in samples_it:
+                        yield sample_couple
+
+    def to_cache(self, sample: Sample, data: Any):
+        pass
+
+    def from_cache(self, sample: Sample):
+        if sample in self.samples_cache:
+            cached_output = self.samples_cache[sample]
+            self.samples_call[sample] -= 1
+            if self.samples_call[sample] <= 0:
+                del self.samples_cache[sample]
+            return cached_output
+        else:
+            raise KeyError("Sample not in cache")
+
+
+class ProcessorNode(CachedNode):
     """A processor node basically wraps a processor, and iterating
     upon that node will lazilly call the processor on the current sample
     being 'pulled' from the node. Nodes that have several child nodes
@@ -32,8 +97,13 @@ class ProcessorNode(BackReferencedNodeMixin, Node):
         self.proc = processor
         self.fail_on_error = fail_on_error
         self.sample_iter = None
-        self.samples_cache: Dict[Sample, Any] = {}
-        self.samples_call: Dict[Sample, int] = {}
+
+    def set_sample_iter(self):
+        # Sample iter is the iterator of the parent node, wrapped
+        # by the own node's sample processor
+        parent_it = iter(self.parent_node)
+        self.sample_iter = self.proc(parent_it,
+                                     fail_on_error=self.fail_on_error)
 
     def __iter__(self):
         # Sample iter is the iterator of the parent node, wrapped
@@ -71,20 +141,6 @@ class ProcessorNode(BackReferencedNodeMixin, Node):
                 for sample_couple in samples_it:
                     yield sample_couple
 
-    def __call__(self, sample: Sample):
-        if sample in self.samples_cache:
-            cached_output = self.samples_cache[sample]
-            self.samples_call[sample] -= 1
-            if self.samples_call[sample] <= 0:
-                del self.samples_cache[sample]
-            return cached_output
-        else:
-            output = self.proc()
-        # TODO : process output from parent node. If node has several children,
-        #  cache result for that one sample using the sample_id as a key
-        #  the cached result should be cleaned when all the child have retrieved the
-        #  processed result
-
 
 class FeatureLeaf(Node):
     """Doesn't do any processing, just here as a special kind of node from
@@ -99,10 +155,6 @@ class FeatureLeaf(Node):
     def __iter__(self):
         return iter(self.parent_node)
 
-    def __call__(self, sample: Sample):
-        return self.parent_node(sample)
-        # TODO: should be called upon a sample, and should propagate the call to the parent node
-
 
 class RootNode(Node):
     """This node is a "passthrough" node that allows to have a unified tree"""
@@ -113,10 +165,10 @@ class RootNode(Node):
 
     def __iter__(self):
         for sample in self.dataset:
-            yield sample
+            yield sample, None
 
 
-class FeatureInputNode(BackReferencedNodeMixin, Node):
+class FeatureInputNode(CachedNode):
     """This node is a "passthrough" node who's only job is to retrieve the input data from the
     sample in the dataset, and then cache it"""
 
@@ -124,9 +176,15 @@ class FeatureInputNode(BackReferencedNodeMixin, Node):
         # TODO : check what identifier's purpose is in the treelib doc again
         super().__init__(tag=feat_input, identifier=feat_input)
 
-    def __iter__(self):
+    def process_sample(self, sample: Sample, sample_data : Any) -> Any:
+        return sample.get_data(self.tag)
+
+    def _root_node_iterator(self):
         for sample in iter(self.parent_node):
             yield sample, sample.get_data(self.tag)
+
+    def set_sample_iter(self):
+        self.sample_iter = self._root_node_iterator()
 
 
 class ProcessorsTree(Tree):
