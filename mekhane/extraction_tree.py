@@ -8,24 +8,28 @@ from .processors import BaseProcessor
 from .samples import Sample
 
 
-class CachedNode(Node):
+class BackReferencedNode(Node):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.parent_node: Node = None
+
+    def set_parent_node(self, tree: 'ProcessorsTree'):
+        """The parent node reference has to be set "by hand" as it is not
+        set during the build time of the tree."""
+        self.parent_node = tree[self.bpointer]
+
+
+class CachedNode(BackReferencedNode):
     """A node that caches samples or sample data values, and flushes
     the sample's cache once it's been 'retrieved' a sufficient amount
     of time (corresponding to the number of children that node has)"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.parent_node: Node = None
         self.samples_cache: Dict[Sample, Any] = {}
         self.samples_call: Dict[Sample, int] = {}
-        self.parent_node = None
         self.sample_iter: Iterable = None
-
-    def set_parent_node(self, tree: 'ProcessorsTree'):
-        """The parent node reference has to be set "by hand" as it is not
-        set during the build time of the tree."""
-        if not self.is_root():
-            self.parent_node = tree[self.bpointer]
 
     def set_sample_iter(self):
         pass
@@ -142,15 +146,12 @@ class ProcessorNode(CachedNode):
                     yield sample_couple
 
 
-class FeatureLeaf(Node):
+class FeatureLeaf(BackReferencedNode):
     """Doesn't do any processing, just here as a special kind of node from
     which to pull samples for a specific feature"""
     def __init__(self, feature: str):
         super().__init__(tag=feature, identifier=feature)
         self.parent_node: ProcessorNode = None
-
-    def set_parent_node(self, tree: 'ProcessorsTree'):
-        self.parent_node = tree[self.bpointer]
 
     def __iter__(self):
         return iter(self.parent_node)
