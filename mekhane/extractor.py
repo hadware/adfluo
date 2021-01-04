@@ -12,6 +12,7 @@ from .pipeline import ExtractionPipeline
 from .processors import BaseProcessor
 
 
+
 class ExtractionType(Enum):
     FEATURE = 1
     LABEL = 2
@@ -65,25 +66,18 @@ class Extractor:
 
     def add_extraction(
             self,
-            feature_name: str,
-            feat_input: str,
             extractors: Union[List[BaseProcessor], BaseProcessor],
-            extraction_type: str = "feature",  # "feature" or "label"
             fail_on_error: bool = None,
-            drop_on_save: bool = False,
-            factorize: bool = True):
+            drop_on_save: bool = False):
         """
         Adds a single feature extraction pipeline to the extractor.
 
         :param feature_name: name of the extracted feature, should be unique
         :param feat_input: the input data "fed" to the extraction pipeline
         :param extractors: a list of extractors
-        :param extraction_type: (optional) "feature" or "label"
         :param fail_on_error: if False, errors are silenced and the sample's
         value for that feature will be None
         :param drop_on_save: do not dump feature to output file
-        :param factorize: if possible, factorize this feature pipeline into a
-        feature tree extraction
         """
         self.needs_scheduling = True
 

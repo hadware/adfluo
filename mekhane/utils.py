@@ -1,3 +1,7 @@
+import logging
+
+logger = logging.getLogger("mekhane")
+
 def consecutive_couples(iterable):
     firsts = list(iterable)
     firsts.pop(-1)
