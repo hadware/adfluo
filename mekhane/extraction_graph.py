@@ -1,7 +1,8 @@
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from typing import List, Dict, Tuple, Any, Optional, Iterable
+from typing import List, Dict, Tuple, Any, Optional, Iterable, Set
 
+from mekhane import ExtractionPipeline
 from mekhane.loader import DatasetLoader
 from mekhane.processors import BaseProcessor, BatchProcessor, SampleProcessor
 from mekhane.samples import Sample
@@ -11,28 +12,35 @@ FeatureName = str
 SampleData = Any
 
 
-class GraphNode(metaclass=ABCMeta):
-    children: List['GraphNode'] = []
-    parents: List['GraphNode'] = []
+class BaseGraphNode(metaclass=ABCMeta):
+    children: List['BaseGraphNode'] = []
+    parents: List['BaseGraphNode'] = []
 
     @abstractmethod
     def __hash__(self):
         pass
 
+    def __eq__(self, other: 'BaseGraphNode'):
+        return hash(self) == hash(other)
+
     def iter_all_samples(self) -> Iterable[Sample]:
         return self.parents[0].iter_all_samples()
+
+    def ancestor_hash(self) -> float:
+        parents_hashes = tuple(parent.ancestor_hash() for parent in self.parents)
+        return hash((self, *parents_hashes))
 
     @abstractmethod
     def __getitem__(self, sample: Sample) -> SampleData:
         pass
 
 
-class CachedNode(GraphNode, metaclass=ABCMeta):
+class CachedNode(BaseGraphNode, metaclass=ABCMeta):
     """An abstract type for nodes that caches data until it has been retrieved
     (or "pulled") by all of its child nodes."""
 
     _samples_cache: Dict[Sample, Any] = dict()
-    _samples_call_count: Dict[Sample, int] = dict()
+    _samples_cache_hits: Dict[Sample, int] = dict()
     _fail_on_error: bool = False
 
     @abstractmethod
@@ -44,9 +52,12 @@ class CachedNode(GraphNode, metaclass=ABCMeta):
 
     def from_cache(self, sample: Sample):
         if sample in self._samples_cache:
+            # retrieving the sample and incrementing the cache hits counter
             cached_output = self._samples_cache[sample]
-            self._samples_call_count[sample] -= 1
-            if self._samples_call_count[sample] <= 0:
+            self._samples_cache_hits[sample] += 1
+            # if the cache hits equals the number of children, the sample's
+            # value can be dropped from the cache
+            if self._samples_cache_hits[sample] >= len(self.children):
                 del self._samples_cache[sample]
             return cached_output
         else:
@@ -54,7 +65,11 @@ class CachedNode(GraphNode, metaclass=ABCMeta):
 
     def to_cache(self, sample: Sample, data: SampleData):
         self._samples_cache[sample] = data
-        self._samples_call_count[sample] = len(self.children) - 1
+        self._samples_cache_hits[sample] = 1
+
+    def reset_cache(self):
+        self._samples_cache = {}
+        self._samples_cache_hits = {}
 
     def __getitem__(self, sample: Sample) -> SampleData:
         try:
@@ -69,7 +84,7 @@ class SampleProcessorNode(CachedNode):
     """Wraps a processor. If it has several child node, it's able to cache
     the result of its processor for each sample."""
 
-    def __init__(self, parents: List[GraphNode], processor: SampleProcessor):
+    def __init__(self, parents: List[BaseGraphNode], processor: SampleProcessor):
         self.processor = processor
         self.parents = parents
 
@@ -80,7 +95,7 @@ class SampleProcessorNode(CachedNode):
 
 class BatchProcessorNode(CachedNode):
 
-    def __init__(self, parents: List[GraphNode], processor: BatchProcessor):
+    def __init__(self, parents: List[BaseGraphNode], processor: BatchProcessor):
         self.processor = processor
         self.parents = parents
         self.has_computed_batch = False
@@ -120,10 +135,13 @@ class SampleDataNode(CachedNode):
         return sample.get_data(self.feat_input)
 
 
-class RootNode(GraphNode):
+class RootNode(BaseGraphNode):
 
     def __init__(self):
         self._loader: Optional[DatasetLoader] = None
+
+    def __hash__(self):
+        return hash(self.__class__)
 
     def set_loader(self, loader: DatasetLoader):
         self._loader = loader
@@ -135,17 +153,17 @@ class RootNode(GraphNode):
         return sample
 
 
-class FeatureNode(GraphNode):
+class FeatureNode(BaseGraphNode):
     """Doesn't do any processing, just here as a passthrough node from
     which to pull samples for a specific feature"""
 
-    def __init__(self, parent: GraphNode, feature_name: str):
+    def __init__(self, parent: BaseGraphNode, feature_name: str):
         self.parents = [parent]
         self.feature_name = feature_name
         self.children = []
 
     def __hash__(self):
-        return hash(self.feature_name)
+        return hash((self.__class__, self.feature_name))
 
     def __getitem__(self, sample: Sample) -> Any:
         return self.parents[0][sample]
@@ -154,9 +172,13 @@ class FeatureNode(GraphNode):
 class ExtractionDAG:
 
     def __init__(self):
+        self.nodes : Set[BaseGraphNode] = set()
         self.feature_nodes: Dict[str, FeatureNode] = dict()
         self.root_node: RootNode = RootNode()
         self._loader: Optional[DatasetLoader] = None
+
+    def add_pipeline(self, pipeline: ExtractionPipeline):
+        pass
 
     def set_loader(self, loader: DatasetLoader):
         self._loader = loader

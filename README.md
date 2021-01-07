@@ -1,4 +1,4 @@
-# μηχανή (mêkhanế)
+# μηχανή (mêkhanê)
 
 1. A machine, a mechanism
 2. By extension, anything clever, resourceful

@@ -1,14 +1,11 @@
 
-* check that samples all have unique ID's at extraction time
+* check that samples all have unique ID's at extraction time (maybe done in the root node?)
 * check that feature names != input data names
-* add fail_on_error logic in extraction graph
-* modify the processor class to work without iterators
-* think about/add combiner processors
-    - as regular processors with several arguments (prefered choice)
-    - as a separate class of processors?
-* add lambda processor from soranos
-* remove type-checking code -> DONE
+* change fail_on_error to skip_errors
+* add skip_errors logic in extraction graph
 * add inter-feature dependency graph
 * remove input nodes and replace by regular processor nodes
-* decide whether or not to use Feature("myfeat") or Input("myfeat") for input
-  data from another feature (PROBABLY YES?)
+* decide whether or not to use Feat("myfeat") or Input("myfeat") for input
+  data from another feature (PROBABLY Feat) (either are ok?)
+* check for default args (none should be present ) in Processor.process signature (same with wrapped functions)
+* replace asserts with real useful errors

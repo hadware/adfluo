@@ -1,5 +1,3 @@
-from abc import ABC, abstractmethod
-import sys
 import sys
 from abc import ABC, abstractmethod
 from dis import get_instructions
@@ -31,6 +29,10 @@ class BaseProcessor(ABC):
     def current_sample(self, sample: Sample):
         self._current_sample = sample
 
+    @property
+    def nb_args(self):
+        return len(signature(self.process).parameters)
+
     def process(self, *args) -> Any:
         """Processes just one sample"""
         raise NotImplemented()
@@ -49,14 +51,17 @@ class BaseProcessor(ABC):
         else:
             return self.__class__.__name__
 
-    def __gt__(self, other: PipelineElement):
-        from .pipeline import T, ExtractionPipeline, PIPELINE_TYPE_ERROR
-        if isinstance(other, (BaseProcessor, T)):
+    def __rshift__(self, other: PipelineElement):
+        from .pipeline import (T, Feat, ExtractionPipeline, PIPELINE_TYPE_ERROR,
+                               PipelineBuildError)
+        if isinstance(other, (BaseProcessor, T, Feat)):
             return ExtractionPipeline([self, other])
+        elif callable(other):
+            return ExtractionPipeline([self, FunctionWrapperProcessor(other)])
         elif isinstance(other, ExtractionPipeline):
             other.pipeline.insert(0, self)
         else:
-            raise TypeError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
+            raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
 
     @abstractmethod
     def __call__(self, sample: Sample, sample_data: Tuple[Any], fail_on_error: bool) -> Any:
@@ -80,10 +85,16 @@ class SampleInputProcessor(BaseProcessor):
             return sample.get_data(data_name=self.input)
 
 
+Input = SampleInputProcessor
+
+
 class SampleProcessor(BaseProcessor):
     """Processes one sample after the other, independently"""
 
     def __call__(self, sample: Sample, sample_data: Tuple[Any], fail_on_error: bool) -> Any:
+
+        # TODO: if there is an error and fail_on_error is false,
+        #  maybe set the sample to None instead of the value
 
         # if the current sample being processed is None, the processor
         # acts as a passthrough
@@ -123,6 +134,10 @@ class FunctionWrapperProcessor(SampleProcessor):
             raise ValueError("Function must have one and only one parameter")
         self.fun = fun
 
+    @property
+    def nb_args(self):
+        return len(signature(self.fun).parameters)
+
     def __hash__(self):
         """Hashes the disassembled code of the wrapped function."""
         instructions = tuple((instr.opname, instr.arg, instr.argval)
@@ -132,11 +147,11 @@ class FunctionWrapperProcessor(SampleProcessor):
     def __repr__(self):
         return f"{self.__class__.__name__}({self.fun.__name__})"
 
-    def process(self, sample_data):
-        return self.fun(sample_data)
+    def process(self, *args):
+        return self.fun(*args)
 
 
-class BatchProcessor(BaseProcessor):
+class BatchProcessor(SampleProcessor):
     """Processor class that requires the full list of samples from the
     dataset to be able to process individual samples"""
 
@@ -146,6 +161,3 @@ class BatchProcessor(BaseProcessor):
         """Processes the full dataset of samples. Doesn't return anything,
         store the results as instance attributes"""
         pass
-
-
-Input = SampleInputProcessor
