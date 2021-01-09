@@ -13,14 +13,6 @@ from .processors import BaseProcessor
 
 
 
-class ExtractionType(Enum):
-    FEATURE = 1
-    LABEL = 2
-
-    def __str__(self):
-        return "feature" if self == self.FEATURE else "label"
-
-
 class BaseFeature:
 
     def show(self):
@@ -115,8 +107,8 @@ class Extractor:
                 self.extraction_order.append(feature)
             else:
                 first_proc = feature.pipeline.processors[0]
-                features_groups\
-                    .setdefault((first_proc, feature.input), [])\
+                features_groups \
+                    .setdefault((first_proc, feature.input), []) \
                     .append(feature)
 
         for (_, feat_input), features in features_groups.items():
@@ -126,7 +118,7 @@ class Extractor:
 
             proc_tree = ProcessorsTree(self.fail_on_error)
             for feature in features:
-                proc_tree.add_pipeline(feature.pipeline.processors,
+                proc_tree.add_pipeline(feature.elements.processors,
                                        feature.name)
             feat_tree = FeatureTree(feat_input, proc_tree, features)
             self.extraction_order.append(feat_tree)

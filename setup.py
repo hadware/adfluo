@@ -12,12 +12,12 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 
 setup(
-    name='mekhane',
+    name='adfluo',
     version='0.1.0',
     description='Pipeline-oriented feature extraction for multimodal datasets',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url='https://gitlab.com/ezhealth/mekhane',
+    url='https://github.com/bootphon/adfluo',
     author='Hadrien Titeux',
     author_email='hadrien.titeux@ens.fr',
     license="MIT",

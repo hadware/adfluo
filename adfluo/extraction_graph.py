@@ -1,11 +1,11 @@
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from typing import List, Dict, Tuple, Any, Optional, Iterable, Set
+from typing import List, Dict, Any, Optional, Iterable, Set, Union
 
-from mekhane import ExtractionPipeline
-from mekhane.loader import DatasetLoader
-from mekhane.processors import BaseProcessor, BatchProcessor, SampleProcessor
-from mekhane.samples import Sample
+from .loader import DatasetLoader
+from .pipeline import ExtractionPipeline
+from .processors import BatchProcessor, SampleProcessor, SampleInputProcessor
+from .samples import Sample
 
 SampleID = str
 FeatureName = str
@@ -84,9 +84,8 @@ class SampleProcessorNode(CachedNode):
     """Wraps a processor. If it has several child node, it's able to cache
     the result of its processor for each sample."""
 
-    def __init__(self, parents: List[BaseGraphNode], processor: SampleProcessor):
+    def __init__(self, processor: SampleProcessor):
         self.processor = processor
-        self.parents = parents
 
     def compute_sample(self, sample: Sample) -> Any:
         parents_output = tuple(node[sample] for node in self.parents)
@@ -95,9 +94,8 @@ class SampleProcessorNode(CachedNode):
 
 class BatchProcessorNode(CachedNode):
 
-    def __init__(self, parents: List[BaseGraphNode], processor: BatchProcessor):
+    def __init__(self, processor: BatchProcessor):
         self.processor = processor
-        self.parents = parents
         self.has_computed_batch = False
         self.batch_cache: OrderedDict[Sample, Any] = OrderedDict()
 

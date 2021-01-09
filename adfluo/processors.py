@@ -59,33 +59,13 @@ class BaseProcessor(ABC):
         elif callable(other):
             return ExtractionPipeline([self, FunctionWrapperProcessor(other)])
         elif isinstance(other, ExtractionPipeline):
-            other.pipeline.insert(0, self)
+            other.elements.insert(0, self)
         else:
             raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
 
     @abstractmethod
     def __call__(self, sample: Sample, sample_data: Tuple[Any], fail_on_error: bool) -> Any:
         pass
-
-
-class SampleInputProcessor(BaseProcessor):
-    """Processor that only takes """
-
-    def __init__(self, input: str):
-        super().__init__(input=input)
-        self.input = input
-
-    def __hash__(self):
-        return hash(self.input)
-
-    def process(self, sample: Sample) -> Any:
-        try:
-            return sample.get_feature(feature_name=self.input)
-        except KeyError:
-            return sample.get_data(data_name=self.input)
-
-
-Input = SampleInputProcessor
 
 
 class SampleProcessor(BaseProcessor):
@@ -161,3 +141,35 @@ class BatchProcessor(SampleProcessor):
         """Processes the full dataset of samples. Doesn't return anything,
         store the results as instance attributes"""
         pass
+
+class SampleInputProcessor(SampleProcessor):
+    """Processor that pulls data from samples."""
+
+    def __init__(self, input: str):
+        super().__init__(input=input)
+        self.input = input
+
+    def __hash__(self):
+        return hash(self.input)
+
+    def process(self, sample: Sample) -> Any:
+        try:
+            return sample.get_feature(feature_name=self.input)
+        except KeyError:
+            return sample.get_data(data_name=self.input)
+
+
+Input = SampleInputProcessor
+
+
+class PassThroughProcessor(SampleProcessor):
+    """Processor that acts as a passthrough, doesn't do anything"""
+
+    def __hash__(self):
+        return hash(self.__class__)
+
+    def process(self, *args) -> Tuple:
+        return args
+
+
+Pass = PassThroughProcessor()
