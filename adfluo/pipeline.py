@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 from typing import List, Union, Set
 from dataclasses import dataclass
 
@@ -66,7 +67,20 @@ def wrap_processor(proc : BaseProcessor) -> Union[SampleProcessorNode,
         raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(proc)))
 
 
-class Branch:
+class BasePipeline(metaclass=ABCMeta):
+
+    @abstractmethod
+    @property
+    def head(self) -> BaseGraphNode:
+        pass
+
+    @abstractmethod
+    def append(self, element: BaseProcessor):
+        pass
+
+
+# TODO: change branch API to something simpler
+class Branch(BasePipeline):
     element: List[BaseGraphNode]
 
     def __init__(self):
@@ -93,10 +107,10 @@ class Branch:
             self._head = node
 
 
-class PipelineDAG:
+class PipelineDAG(BasePipeline):
 
     def __init__(self):
-        self.branches: List[Union['PipelineDAG', Branch]] = []
+        self.branches: List[BasePipeline] = []
 
     @property
     def head(self):
@@ -133,12 +147,14 @@ class PipelineDAG:
                 new_node.parents = [old_branch.head]
                 new_branch = Branch()
                 new_branch.head = new_node
+                self.branches.append(new_branch)
             elif isinstance(element, T):
                 pipeline_branch = Branch()
                 pipeline_branch.head = old_branch.head
                 new_pipeline = PipelineDAG()
                 new_pipeline.branches = [pipeline_branch]
                 new_pipeline.append(element)
+                self.branches.append(new_pipeline)
             else:
                 # TODO : better error
                 raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(element)))
@@ -147,14 +163,15 @@ class PipelineDAG:
         assert len(self.branches) <= len(t)
         for i, element in enumerate(t.elements):
             if i < len(self.branches):
-                assert isinstance(element, (SampleProcessor, T))
-
                 if isinstance(element, SampleProcessor):
                     self.branches[i].append(element)
                 elif isinstance(element, T):
                     if isinstance(self.branches[i], Branch):
                         self.convert_branch_to_dag(i)
                     self.branches[i].append(element)
+                else:
+                    # TODO : better error
+                    raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(element)))
             else:
                 # create a new branch
                 self.create_branch(element)
