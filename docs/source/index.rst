@@ -10,6 +10,18 @@ Welcome to adfluo's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   quickstart
+   tutorial
+   reference
+
+Installation
+------------
+
+You can install `adfluo` from Pypi using
+
+.. code-block:: bash
+
+   pip install adfluo
 
 
 Indices and tables
