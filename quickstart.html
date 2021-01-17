@@ -167,14 +167,143 @@
 <span id="id1"></span><h1>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="setting-up-a-dataset">
 <h2>Setting up a Dataset<a class="headerlink" href="#setting-up-a-dataset" title="Permalink to this headline">¶</a></h2>
-<dl class="simple">
-<dt>TODO<span class="classifier">example using  a dict with a file containing some reference to an audio file,</span></dt><dd><p>as well as some annotations</p>
-</dd>
-</dl>
+<p>Let’s say that we had the following yaml file describing some data that we had for
+a bunch of samples (only 4 here for the sake of simplicity).</p>
+<div class="highlight-yaml notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="p p-Indicator">-</span> <span class="nt">id</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SAMPLE-001</span>
+  <span class="nt">audio</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">audio/data/sample1.wav</span>
+  <span class="nt">text</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">I will taunt you a second time!</span>
+  <span class="nt">speech</span><span class="p">:</span>
+    <span class="p p-Indicator">-</span> <span class="nt">start</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">3.2232</span>
+      <span class="nt">end</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">4.3976</span>
+<span class="p p-Indicator">-</span> <span class="nt">id</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SAMPLE-002</span>
+<span class=" -Error"> </span><span class="nt">audio</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">audio/data/sample2.wav</span>
+  <span class="l l-Scalar l-Scalar-Plain">text</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">You mother was a hamster and your father smelt of elderberries!</span>
+  <span class="l l-Scalar l-Scalar-Plain">speech</span><span class="p p-Indicator">:</span>
+    <span class="p p-Indicator">-</span> <span class="nt">start</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.343</span>
+      <span class="nt">end</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">5.8232</span>
+<span class="p p-Indicator">-</span> <span class="nt">id</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SAMPLE-003</span>
+  <span class="nt">audio</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">audio/data/sample3.wav</span>
+  <span class="nt">text</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">I ain&#39;t happy, I&#39;m feeling glad, I got sunshine in a bag, I&#39;m useless but not for long, the future is coming on</span>
+  <span class="nt">speech</span><span class="p">:</span>
+    <span class="p p-Indicator">-</span> <span class="nt">start</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.1543</span>
+      <span class="nt">end</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">3.032</span>
+    <span class="p p-Indicator">-</span> <span class="nt">start</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">3.7</span>
+      <span class="nt">end</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">5.632</span>
+<span class="p p-Indicator">-</span> <span class="nt">id</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">SAMPLE-004</span>
+  <span class="nt">audio</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">audio/data/sample4.wav</span>
+  <span class="nt">text</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">That&#39;s one small step for man, one giant leap for mankind.</span>
+  <span class="nt">speech</span><span class="p">:</span>
+    <span class="p p-Indicator">-</span> <span class="nt">start</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">0.2508</span>
+      <span class="nt">end</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">2.032</span>
+    <span class="p p-Indicator">-</span> <span class="nt">start</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">2.4</span>
+        <span class="l l-Scalar l-Scalar-Plain">end</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">6.1209</span>
+</pre></div>
+</td></tr></table></div>
+<p>Each sample therefore has:</p>
+<ul class="simple">
+<li><p>a unique identifier (<code class="docutils literal notranslate"><span class="pre">id</span></code>)</p></li>
+<li><p>a corresponding audio recording pointed by a path (<code class="docutils literal notranslate"><span class="pre">audio</span></code>)</p></li>
+<li><p>a transcription of that recording (<code class="docutils literal notranslate"><span class="pre">text</span></code>)</p></li>
+<li><p>one or more audio intervals (bounded by <code class="docutils literal notranslate"><span class="pre">start</span></code> and <code class="docutils literal notranslate"><span class="pre">end</span></code>)
+that describe when the speaker is talking.</p></li>
+</ul>
+<p>Let’s create a sample class whose instances correspond to entries of this
+<code class="docutils literal notranslate"><span class="pre">yaml</span></code> file. This class should provide <cite>afluo</cite> with to methods:</p>
+<ul class="simple">
+<li><p>an <code class="docutils literal notranslate"><span class="pre">id</span></code> property that returns a unique id for that sample (in our case, easy thing!)</p></li>
+<li><p>a <code class="docutils literal notranslate"><span class="pre">get_data</span></code> method that should provide, for an instance of a sample, some
+data corresponding to the requested <code class="docutils literal notranslate"><span class="pre">data_name</span></code>. Note that the chosen <code class="docutils literal notranslate"><span class="pre">data_name</span></code>
+values are purely arbitrary, and up to your own choice in practice.</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">adfluo</span> <span class="kn">import</span> <span class="n">Sample</span>
+<span class="kn">import</span> <span class="nn">scipy</span> <span class="c1"># used for loading audio</span>
+
+<span class="k">class</span> <span class="nc">MySample</span><span class="p">(</span><span class="n">Sample</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="c1"># has to be overriden, and must be unique (per sample)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span> <span class="c1"># returns the right data for a given input name</span>
+        <span class="k">if</span> <span class="n">data_name</span> <span class="o">==</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">data_name</span> <span class="o">==</span> <span class="s2">&quot;speech&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[(</span><span class="n">interval</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">],</span> <span class="n">interval</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">])</span>
+                    <span class="k">for</span> <span class="n">interval</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;speech&quot;</span><span class="p">]]</span>
+        <span class="k">elif</span> <span class="n">data_name</span> <span class="o">==</span> <span class="s2">&quot;audio_array&quot;</span><span class="p">:</span>
+            <span class="n">audio_array</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">wave</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;audio&quot;</span><span class="p">])</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;array&quot;</span><span class="p">:</span> <span class="n">audio_array</span><span class="p">,</span> <span class="s2">&quot;rate&quot;</span><span class="p">:</span> <span class="n">rate</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>Now that we’ve implemented the sample class, let’s implement the <code class="docutils literal notranslate"><span class="pre">DatasetLoader</span></code> class. It should
+return an iterable of samples, and be able to tell <cite>adfluo</cite> how many samples there are:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">adfluo</span> <span class="kn">import</span> <span class="n">DatasetLoader</span>
+<span class="kn">import</span> <span class="nn">yaml</span> <span class="c1"># use to load the yaml data</span>
+
+<span class="k">class</span> <span class="nc">MyDataset</span><span class="p">(</span><span class="n">DatasetLoader</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">data_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">yml_file</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">yml_file</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># notice that we&#39;re lazily loading samples.</span>
+        <span class="c1"># This could be useful when samples are too big for your memory to be loaded all at once!</span>
+        <span class="k">for</span> <span class="n">sample_data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">MySample</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">sample_data</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now that we’ve set up what’s needed to load your data, let’s proceed to the interesting part: the
+feature extraction pipelines.</p>
 </div>
 <div class="section" id="setting-up-pipelines">
 <h2>Setting up pipelines<a class="headerlink" href="#setting-up-pipelines" title="Permalink to this headline">¶</a></h2>
-<p>TODO</p>
+<p>For each sample of our dataset, and for some unknown yet strangely didactic reason,
+we’d like to compute the following features:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>the number of words</p></li>
+<li><p>the number of verbs</p></li>
+<li><p>the number of words per spoken second</p></li>
+<li><p>the number of verbs per spoken second</p></li>
+<li><p>the audio length (in seconds)</p></li>
+<li><p>the spoken time / total audio time ratio</p></li>
+</ul>
+</div></blockquote>
 </div>
 <div class="section" id="running-the-extraction">
 <h2>Running the extraction<a class="headerlink" href="#running-the-extraction" title="Permalink to this headline">¶</a></h2>
