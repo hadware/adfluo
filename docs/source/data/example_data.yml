@@ -1,0 +1,28 @@
+- id: SAMPLE-001
+  audio: audio/data/sample1.wav
+  text: I will taunt you a second time!
+  speech:
+    - start: 3.2232
+      end: 4.3976
+- id: SAMPLE-002
+ audio: audio/data/sample2.wav
+  text: You mother was a hamster and your father smelt of elderberries!
+  speech:
+    - start: 0.343
+      end: 5.8232
+- id: SAMPLE-003
+  audio: audio/data/sample3.wav
+  text: I ain't happy, I'm feeling glad, I got sunshine in a bag, I'm useless but not for long, the future is coming on
+  speech:
+    - start: 0.1543
+      end: 3.032
+    - start: 3.7
+      end: 5.632
+- id: SAMPLE-004
+  audio: audio/data/sample4.wav
+  text: That's one small step for man, one giant leap for mankind.
+  speech:
+    - start: 0.2508
+      end: 2.032
+    - start: 2.4
+        end: 6.1209

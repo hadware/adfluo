@@ -10,3 +10,4 @@
 * replace asserts with real useful errors
 * add support for processor that return a Tuple, and add a specific split symbol
   to support splitting the tuple onto several processors ("tuple output unpacking")
+* add support for list of samples/ and samples-as-dicts for 
