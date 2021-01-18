@@ -11,7 +11,7 @@ Welcome to adfluo's documentation!
    :caption: Contents:
 
    quickstart
-   tutorial
+   user_guide
    reference
 
 Installation
