@@ -142,20 +142,24 @@ class BatchProcessor(SampleProcessor):
         store the results as instance attributes"""
         pass
 
+
 class SampleInputProcessor(SampleProcessor):
     """Processor that pulls data from samples."""
 
-    def __init__(self, input: str):
+    def __init__(self, input: str, is_feat: bool = False):
+        # is_feat is not part of the hash because input data names and features names
+        # are part of the same set and are unique in that set
         super().__init__(input=input)
         self.input = input
+        self.is_feat = is_feat
 
     def __hash__(self):
         return hash(self.input)
 
     def process(self, sample: Sample) -> Any:
-        try:
+        if self.is_feat:
             return sample.get_feature(feature_name=self.input)
-        except KeyError:
+        else:
             return sample.get_data(data_name=self.input)
 
 

@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
-from typing import List, Union, Set
+from collections import deque
+from typing import List, Union, Set, Deque, Tuple
 from dataclasses import dataclass
 
 from .extraction_graph import BaseGraphNode, FeatureNode, SampleProcessorNode, BatchProcessorNode
@@ -112,6 +113,7 @@ class PipelineDAG(BasePipeline):
     def __init__(self):
         self.branches: List[BasePipeline] = []
 
+
     @property
     def head(self):
         assert len(self.branches) == 1
@@ -122,13 +124,36 @@ class PipelineDAG(BasePipeline):
         pass
 
     @property
-    def depends_on_features(self) -> List[Feat]:
+    def input_data(self) -> List[Feat]:
         pass
+
+    def walk(self) -> Tuple[List[BaseGraphNode], List[BaseGraphNode]]:
+        """Starting from the head of its branches, goes up the DAG to gather
+        input and output nodes"""
+        output_nodes: List[BaseGraphNode] = []
+        input_nodes: List[BaseGraphNode] = []
+        nodes_stack: Deque[BaseGraphNode] = deque()
+        for branch in self.branches:
+            output_nodes.append(branch.head)
+            nodes_stack.appendleft(branch.head)
+
+        while nodes_stack:
+            # if a node on the stack has parents, put them on the stack, else,
+            # it must be an input node, and put it in the input nodes list
+            node = nodes_stack.pop()
+            if node.parents:
+                for parent in node.parents:
+                    nodes_stack.appendleft(parent)
+            else:
+                input_nodes.append(node)
+
+        return input_nodes, output_nodes
+
 
     def create_branch(self, input_proc: Union[Feat, Input]):
         assert isinstance(input_proc, (Input, Feat))
         if isinstance(input_proc, Feat):
-            input_proc = Input(input_proc.feat_name)
+            input_proc = Input(input_proc.feat_name, is_feat=True)
         new_branch = Branch()
         new_branch.append(input_proc)
         self.branches.append(new_branch)

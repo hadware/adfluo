@@ -12,49 +12,11 @@ from .pipeline import ExtractionPipeline
 from .processors import BaseProcessor
 
 
-
-class BaseFeature:
-
-    def show(self):
-        raise NotImplemented()
-
-
-class Feature(BaseFeature):
-    def __init__(self, name: str, feat_input: str, factorize: bool,
-                 type: ExtractionType, pipeline: ExtractionPipeline,
-                 dropped: bool):
-        self.name = name
-        self.type = type
-        self.input = feat_input
-        self.factorize = factorize
-        self.pipeline = pipeline
-        self.dropped = dropped
-
-    def show(self):
-        pipeline_repr = " -> ".join(map(repr, self.pipeline.processors))
-        print("Standalone Feature (input %s): \n  %s -> %s"
-              % (self.input, pipeline_repr, self.name))
-
-
-class FeatureTree(BaseFeature):
-    def __init__(self, feat_input: str, proc_tree: ProcessorsTree,
-                 features: List[Feature]):
-        self.input = feat_input
-        self.proc_tree = proc_tree
-        self.features = features
-
-    def show(self):
-        print("Feature Tree (input %s):" % self.input)
-        self.proc_tree.show()
-
-
 class Extractor:
-    def __init__(self, fail_on_error=True, factorize_features=True):
-        self.extractions: Dict[str, Feature] = OrderedDict()
+    def __init__(self, fail_on_error=True):
+        self.extractions: List[ExtractionPipeline] = []
         self.extraction_order: List[BaseFeature] = None
-        self.needs_scheduling = False
         self.fail_on_error = fail_on_error
-        self.factorize = factorize_features
 
     def add_extraction(
             self,
