@@ -1,12 +1,12 @@
 from abc import ABCMeta, abstractmethod
 from collections import deque
-from typing import List, Union, Set, Deque, Tuple
+from typing import List, Union, Deque, Tuple, Optional
+
 from dataclasses import dataclass
 
-from .extraction_graph import BaseGraphNode, FeatureNode, SampleProcessorNode, BatchProcessorNode
-from .processors import BaseProcessor, FunctionWrapperProcessor, SampleInputProcessor, SampleProcessor, BatchProcessor, \
-    Input
-from .utils import are_consecutive_int
+from .extraction_graph import BaseGraphNode, SampleProcessorNode, BatchProcessorNode, FeatureNode
+from .processors import BaseProcessor, FunctionWrapperProcessor, SampleProcessor, BatchProcessor, \
+    Input, Feat
 
 PipelineElement = Union['ExtractionPipeline', BaseProcessor, 'T', 'Feat']
 
@@ -15,14 +15,6 @@ PIPELINE_TYPE_ERROR = "Invalid object in pipeline of type {obj_type}"
 
 class PipelineBuildError(Exception):
     pass
-
-
-@dataclass(frozen=True)
-class Feat:
-    feat_name: str
-
-    def __hash__(self):
-        return hash(self.feat_name)
 
 
 class T:
@@ -57,10 +49,11 @@ class T:
             raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
 
 
-def wrap_processor(proc : BaseProcessor) -> Union[SampleProcessorNode,
-                                                  BatchProcessorNode]:
-
-    if isinstance(proc, BatchProcessor):
+def wrap_processor(proc: BaseProcessor) -> Union[SampleProcessorNode,
+                                                 BatchProcessorNode]:
+    if isinstance(proc, Feat):
+        return FeatureNode(proc)
+    elif isinstance(proc, BatchProcessor):
         return BatchProcessorNode(proc)
     elif isinstance(proc, SampleProcessor):
         return SampleProcessorNode(proc)
@@ -112,29 +105,23 @@ class PipelineDAG(BasePipeline):
 
     def __init__(self):
         self.branches: List[BasePipeline] = []
-
+        self.input_nodes: Optional[List[Input]] = None
+        self.output_nodes: Optional[List[Feat]] = None
 
     @property
     def head(self):
         assert len(self.branches) == 1
         return self.branches[0].head
 
-    @property
-    def output_features(self) -> List[Feat]:
-        pass
-
-    @property
-    def input_data(self) -> List[Feat]:
-        pass
-
     def walk(self) -> Tuple[List[BaseGraphNode], List[BaseGraphNode]]:
         """Starting from the head of its branches, goes up the DAG to gather
         input and output nodes"""
-        output_nodes: List[BaseGraphNode] = []
-        input_nodes: List[BaseGraphNode] = []
+        self.input_nodes = []
+        self.output_nodes = []
         nodes_stack: Deque[BaseGraphNode] = deque()
         for branch in self.branches:
-            output_nodes.append(branch.head)
+            self.output_nodes.append(branch.head)
+            assert isinstance(branch.head, Fea)
             nodes_stack.appendleft(branch.head)
 
         while nodes_stack:
@@ -145,10 +132,7 @@ class PipelineDAG(BasePipeline):
                 for parent in node.parents:
                     nodes_stack.appendleft(parent)
             else:
-                input_nodes.append(node)
-
-        return input_nodes, output_nodes
-
+                self.input_nodes.append(node)
 
     def create_branch(self, input_proc: Union[Feat, Input]):
         assert isinstance(input_proc, (Input, Feat))

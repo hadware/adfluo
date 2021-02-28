@@ -12,3 +12,7 @@ class PickleStorage(BaseStorage):
 
 class DataFrameStorage(BaseStorage):
     pass
+
+
+class HDF5Storage(BaseStorage):
+    pass

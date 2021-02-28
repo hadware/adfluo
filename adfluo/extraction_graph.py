@@ -118,9 +118,11 @@ class BatchProcessorNode(CachedNode):
         return self.processor(sample, parents_output, fail_on_error=True)
 
 
+# TODO: remove: should be replaced by regular ProcessorNode using an inputprocessor
 class SampleDataNode(CachedNode):
-    """Caches each sample's data retrieved from the dataset (to prevent
-    it from being recomputed if it's costly.)"""
+    """Caches each sample's input data retrieved from the dataset (to prevent
+    it from being recomputed if it's costly.). Its parent node in the DAG
+    is always a `RootNode` """
 
     def __init__(self, root_node: 'RootNode', feat_input: str):
         self.feat_input = feat_input
@@ -151,32 +153,36 @@ class RootNode(BaseGraphNode):
         return sample
 
 
-class FeatureNode(BaseGraphNode):
+class FeatureNode(SampleProcessorNode):
     """Doesn't do any processing, just here as a passthrough node from
     which to pull samples for a specific feature"""
 
-    def __init__(self, parent: BaseGraphNode, feature_name: str):
-        self.parents = [parent]
-        self.feature_name = feature_name
-        self.children = []
-
-    def __hash__(self):
-        return hash((self.__class__, self.feature_name))
-
-    def __getitem__(self, sample: Sample) -> Any:
-        return self.parents[0][sample]
+    def ancestor_hash(self) -> float:
+        # TODO: document
+        return hash(self)
 
 
 class ExtractionDAG:
 
     def __init__(self):
-        self.nodes : Set[BaseGraphNode] = set()
+        self.nodes: Set[BaseGraphNode] = set()
         self.feature_nodes: Dict[str, FeatureNode] = dict()
         self.root_node: RootNode = RootNode()
         self._loader: Optional[DatasetLoader] = None
 
     def add_pipeline(self, pipeline: ExtractionPipeline):
         pass
+        # algorithm outline:
+        # stack = list(feature leafs)
+        # for node in stack:
+        # - pop it from the stack
+        # - check if parent nodes hash is found somewhere in the tree
+        # - if parent node hash is found, connect current node to DAG node
+        # - else, add parent node to stack
+
+    def solve_dependencies(self):
+        """Connects inputs that are actually features to the corresponding
+        `FeatureNode`"""
 
     def set_loader(self, loader: DatasetLoader):
         self._loader = loader

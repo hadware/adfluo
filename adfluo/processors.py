@@ -2,7 +2,7 @@ import sys
 from abc import ABC, abstractmethod
 from dis import get_instructions
 from inspect import signature
-from typing import Any, List, Tuple, Callable, TYPE_CHECKING
+from typing import Any, List, Tuple, Callable, TYPE_CHECKING, Hashable
 
 from .samples import Sample
 from .utils import logger
@@ -13,21 +13,22 @@ if TYPE_CHECKING:
 
 class BaseProcessor(ABC):
     """Baseclass for a processor from the feature extraction pipeline"""
+    _kwargs = {}
+    _ordered_kwargs: Tuple[Tuple[str, Hashable]] = tuple()
+    _current_sample: Sample = None
 
-    def __init__(self, **kwargs):
-        self.kwargs = kwargs
+    def register_params(self, **kwargs):
+        # TODO : better error msg
+        # checking that params are unique (and not already present in the kwargs)
+        assert (set(self._kwargs) & set(kwargs.keys())) == set()
+        self._kwargs.update(kwargs)
         # ordering the kwargs by name to ensure a consistent hash value
-        self.ordered_kwargs = tuple(sorted(list(kwargs.items()),
-                                           key=lambda x: x[0]))
-        self._current_sample: Sample = None
+        self._ordered_kwargs = tuple(sorted(list(self._kwargs.items()),
+                                            key=lambda x: x[0]))
 
     @property
     def current_sample(self):
         return self._current_sample
-
-    @current_sample.setter
-    def current_sample(self, sample: Sample):
-        self._current_sample = sample
 
     @property
     def nb_args(self):
@@ -38,16 +39,16 @@ class BaseProcessor(ABC):
         raise NotImplemented()
 
     def __hash__(self):
-        return hash((self.__class__, self.ordered_kwargs))
+        return hash((self.__class__, self._ordered_kwargs))
 
     def __eq__(self, other):
         return hash(self) == hash(other)
 
     def __repr__(self):
-        if self.kwargs:
+        if self._kwargs:
             return (self.__class__.__name__ +
                     "(%s)" % ",".join("%s=%s" % (key, val)
-                                      for key, val in self.ordered_kwargs))
+                                      for key, val in self._ordered_kwargs))
         else:
             return self.__class__.__name__
 
@@ -88,7 +89,7 @@ class SampleProcessor(BaseProcessor):
         # - if not, we just replace the processed output with None
         # and print an error message
         try:
-            self.current_sample = sample
+            self._current_sample = sample
             processed_sample = self.process(*sample_data)
         except Exception as e:
             if fail_on_error:
@@ -125,7 +126,7 @@ class FunctionWrapperProcessor(SampleProcessor):
         return hash(instructions)
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.fun.__name__})"
+        return f"{self.fun.__name__}"
 
     def process(self, *args):
         return self.fun(*args)
@@ -177,3 +178,15 @@ class PassThroughProcessor(SampleProcessor):
 
 
 Pass = PassThroughProcessor()
+
+
+class FeatureProcessor(PassThroughProcessor):
+    """A subtype of `PassThroughProcessor` used to reference a feature"""
+
+    def __init__(self, feat_name: str):
+        self.feat_name = feat_name
+
+    def __hash__(self):
+        return hash((self.__class__, self.feat_name))
+
+Feat = FeatureProcessor
