@@ -19,8 +19,9 @@
 * for pickle (and maybe hdf5), add support for "direct store" feature (not stored in memory once computed,  
   directly put on disk in the resulting pickle)
 * add dataset-level pipelines to compute feature aggregates
-* ask around for a better method to hash nodes (the kwargs problem): probably a method "self.register_param(param=value, param=value)"
-  -> check in the method that params are unique
+* for processor params, use pytorch-like semantics and obj introspection:
+ def __init__(val: int):
+    self.val = param(val)
 
 # Future implementation Notes
 

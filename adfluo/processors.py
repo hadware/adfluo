@@ -4,6 +4,8 @@ from dis import get_instructions
 from inspect import signature
 from typing import Any, List, Tuple, Callable, TYPE_CHECKING, Hashable
 
+from sortedcontainers import SortedDict
+
 from .samples import Sample
 from .utils import logger
 
@@ -11,20 +13,19 @@ if TYPE_CHECKING:
     from .pipeline import PipelineElement
 
 
+class ProcessorParameter:
+    def __init__(self, value: Hashable):
+        self.value = value
+
+
+def param(value: Hashable) -> Any:
+    return ProcessorParameter(value)
+
+
 class BaseProcessor(ABC):
     """Baseclass for a processor from the feature extraction pipeline"""
-    _kwargs = {}
-    _ordered_kwargs: Tuple[Tuple[str, Hashable]] = tuple()
+    _params: SortedDict = SortedDict()
     _current_sample: Sample = None
-
-    def register_params(self, **kwargs):
-        # TODO : better error msg
-        # checking that params are unique (and not already present in the kwargs)
-        assert (set(self._kwargs) & set(kwargs.keys())) == set()
-        self._kwargs.update(kwargs)
-        # ordering the kwargs by name to ensure a consistent hash value
-        self._ordered_kwargs = tuple(sorted(list(self._kwargs.items()),
-                                            key=lambda x: x[0]))
 
     @property
     def current_sample(self):
@@ -38,17 +39,25 @@ class BaseProcessor(ABC):
         """Processes just one sample"""
         raise NotImplemented()
 
+    def __setattr__(self, key, value):
+        if isinstance(value, ProcessorParameter):
+            self._params[key] = value
+
+    def __getattribute__(self, item):
+        return self._params.get(item,
+                                default=super().__getattribute__(item))
+
     def __hash__(self):
-        return hash((self.__class__, self._ordered_kwargs))
+        return hash((self.__class__, tuple(self._params.items())))
 
     def __eq__(self, other):
         return hash(self) == hash(other)
 
     def __repr__(self):
-        if self._kwargs:
-            return (self.__class__.__name__ +
-                    "(%s)" % ",".join("%s=%s" % (key, val)
-                                      for key, val in self._ordered_kwargs))
+        if self._params:
+            params = ",".join("%s=%s" % (key, val)
+                              for key, val in self._params.items())
+            return f"{self.__class__.__name__}({params})"
         else:
             return self.__class__.__name__
 
@@ -65,7 +74,7 @@ class BaseProcessor(ABC):
             raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
 
     @abstractmethod
-    def __call__(self, sample: Sample, sample_data: Tuple[Any], fail_on_error: bool) -> Any:
+    def __call__(self, *args, fail_on_error: bool) -> Any:
         pass
 
 
@@ -105,12 +114,9 @@ class SampleProcessor(BaseProcessor):
             return processed_sample
 
 
-class FunctionWrapperProcessor(SampleProcessor):
-    """Used to wrap simple functions that can be used inline, without
-    a processor"""
+class FunctionWrapperMixin:
 
     def __init__(self, fun: Callable):
-        super().__init__()
         if len(signature(fun).parameters) != 1:
             raise ValueError("Function must have one and only one parameter")
         self.fun = fun
@@ -125,6 +131,11 @@ class FunctionWrapperProcessor(SampleProcessor):
                              for instr in get_instructions(self.fun))
         return hash(instructions)
 
+
+class FunctionWrapperProcessor(SampleProcessor, FunctionWrapperMixin):
+    """Used to wrap simple functions that can be used inline, without
+    a processor"""
+
     def __repr__(self):
         return f"{self.fun.__name__}"
 
@@ -137,8 +148,7 @@ class BatchProcessor(SampleProcessor):
     dataset to be able to process individual samples"""
 
     @abstractmethod
-    def full_dataset_process(self, samples: List[Sample],
-                             samples_data: List[Any, Tuple]):
+    def full_dataset_process(self, samples_data: List[Any, Tuple]):
         """Processes the full dataset of samples. Doesn't return anything,
         store the results as instance attributes"""
         pass
@@ -180,7 +190,7 @@ class PassThroughProcessor(SampleProcessor):
 Pass = PassThroughProcessor()
 
 
-class FeatureProcessor(PassThroughProcessor):
+class SampleFeatureProcessor(PassThroughProcessor):
     """A subtype of `PassThroughProcessor` used to reference a feature"""
 
     def __init__(self, feat_name: str):
@@ -189,4 +199,30 @@ class FeatureProcessor(PassThroughProcessor):
     def __hash__(self):
         return hash((self.__class__, self.feat_name))
 
-Feat = FeatureProcessor
+
+Feat = SampleFeatureProcessor
+
+
+class DatasetAggregator(BaseProcessor):
+
+    @abstractmethod
+    def aggregate(self, samples_data: List[Any, Tuple]) -> Any:
+        pass
+
+    def process(self, *args) -> Any:
+        pass
+
+    def __call__(self, *args, **kwargs):
+        pass  # TODO
+
+
+class FunctionWrapperAggregator(DatasetAggregator, FunctionWrapperMixin):
+
+    def __repr__(self):
+        return f"Aggregator({self.fun.__name__})"
+
+    def aggregate(self, samples_data: List[Any, Tuple]) -> Any:
+        return self.fun(samples_data)
+
+
+Aggregator = FunctionWrapperAggregator

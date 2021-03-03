@@ -1,6 +1,6 @@
 import pickle
 from abc import ABC, abstractmethod
-from typing import Iterable
+from typing import Iterable, List, Dict
 
 from pathlib import Path
 
@@ -14,17 +14,13 @@ class DatasetLoader(ABC):
     attribute.
     """
 
-    @property
-    @abstractmethod
-    def samples(self) -> Iterable[Sample]:
-        raise NotImplementedError()
-
     @abstractmethod
     def __len__(self):
         raise NotImplementedError()
 
+    @abstractmethod
     def __iter__(self) -> Iterable[Sample]:
-        return iter(self.samples)
+        raise NotImplementedError()
 
     def save(self,
              output_filepath: Path,
@@ -49,3 +45,17 @@ class DatasetLoader(ABC):
             pkled_dict[sample.id] = sample.to_pickle()
         with open(str(filepath), "wb") as pklfile:
             pickle.dump(pkled_dict, pklfile)
+
+
+class DictLoader(DatasetLoader):
+
+    def __init__(self, samples: List[Dict, Sample]):
+        self._samples = samples
+
+    def __len__(self):
+        return len(self._samples)
+
+    def __iter__(self):
+        return iter(self._samples)
+
+

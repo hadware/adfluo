@@ -1,14 +1,10 @@
-import logging
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Set
 
 
 class Sample(ABC):
-    def __init__(self):
-        self.features: Dict[str, Any] = {}
-        self.labels: Dict[str, Any] = {}
-        self.dropped_features: Set[str] = set()
-        self.dropped_labels: Set[str] = set()
+    _features: Dict[str, Any] = {}
+    _dropped_features: Set[str] = set()
 
     def __getitem__(self, item):
         if not isinstance(item, str):
@@ -39,49 +35,27 @@ class Sample(ABC):
         raise NotImplementedError()
 
     def get_feature(self, feature_name: str):
-        return self.features[feature_name]
+        return self._features[feature_name]
 
+    # TODO: figure out behavior with feature-storage objects
     def store_feature(self, name, feature, drop_on_save=False):
         """Stores the feature
         In the future, this may cache 'heavy' features in a H5 file to
         prevent overloading the memory"""
-        self.features[name] = feature
+        self._features[name] = feature
         if drop_on_save:
-            self.dropped_features.add(name)
-
-    def store_label(self, name, label, drop_on_save=False):
-        self.labels[name] = label
-        if drop_on_save:
-            self.dropped_labels.add(label)
-
-    def to_h5(self, h5_file):
-        """Writes the extracted labels and features to the h5 file"""
-        raise NotImplemented()
-
-    def to_pickle(self):
-        """Formats the sample's feature to a dictionary that can then
-        be pickled"""
-
-        def to_storable(data_dict):
-            d = {}
-            for data_name, sample_data in data_dict.items():
-                if isinstance(sample_data, SampleData):
-                    d[data_name] = sample_data.to_storable()
-                else:
-                    d[data_name] = sample_data
-            return d
-        saved_features = {feat_name: data
-                          for feat_name, data in self.features.items()
-                          if feat_name not in self.dropped_features}
-        saved_labels = {label_name: data
-                        for label_name, data in self.labels.items()
-                        if label_name not in self.dropped_labels}
-        return {
-            "features": to_storable(saved_features),
-            "labels": to_storable(saved_labels)
-        }
+            self._dropped_features.add(name)
 
 
-class SampleData:
-    def to_storable(self):
-        raise NotImplementedError()
+class DictSample(Sample):
+
+    def __init__(self, sample_dict: Dict[str, Any], sample_id: int):
+        self.sample_id = sample_id
+        self.sample_dict = sample_dict
+
+    @property
+    def id(self):
+        return str(self.sample_id)
+
+    def get_data(self, data_name: str):
+        return self.sample_dict[data_name]

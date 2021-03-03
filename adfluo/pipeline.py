@@ -105,29 +105,33 @@ class PipelineDAG(BasePipeline):
 
     def __init__(self):
         self.branches: List[BasePipeline] = []
-        self.input_nodes: Optional[List[Input]] = None
-        self.output_nodes: Optional[List[Feat]] = None
+        self.input_nodes: Optional[List[SampleProcessorNode]] = None
+        self.output_nodes: Optional[List[FeatureNode]] = None
+        self.all_nodes: Optional[List[BaseGraphNode]] = None
 
     @property
     def head(self):
         assert len(self.branches) == 1
         return self.branches[0].head
 
-    def walk(self) -> Tuple[List[BaseGraphNode], List[BaseGraphNode]]:
+    def walk(self):
         """Starting from the head of its branches, goes up the DAG to gather
         input and output nodes"""
-        self.input_nodes = []
-        self.output_nodes = []
+        self.input_nodes, self.output_nodes, self.all_nodes = [], [], []
         nodes_stack: Deque[BaseGraphNode] = deque()
         for branch in self.branches:
             self.output_nodes.append(branch.head)
-            assert isinstance(branch.head, Fea)
+            # TODO: better error
+            assert isinstance(branch.head, FeatureNode)
             nodes_stack.appendleft(branch.head)
+
+        self.all_nodes += self.output_nodes
 
         while nodes_stack:
             # if a node on the stack has parents, put them on the stack, else,
             # it must be an input node, and put it in the input nodes list
             node = nodes_stack.pop()
+            self.all_nodes.append(node)
             if node.parents:
                 for parent in node.parents:
                     nodes_stack.appendleft(parent)
@@ -220,10 +224,8 @@ class ExtractionPipeline:
     needed to extract one or several features."""
 
     def __init__(self,
-                 elements: List[Union[BaseProcessor, T, Feat]],
-                 fail_on_error: bool = True):
+                 elements: List[Union[BaseProcessor, T, Feat]]):
         self.elements = elements
-        self.fail_on_error = fail_on_error
 
     def __rshift__(self, other: PipelineElement):
         if isinstance(other, (BaseProcessor, T, Feat)):
@@ -235,15 +237,8 @@ class ExtractionPipeline:
         else:
             raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
 
-    def check(self):
-        pass
-        # TODO :
-        #  * has to end with a feature or a feature tuple
-        #  * has to start with inputs, input tuples or feature input
-        #  *
-
     def build_pipeline_tree(self) -> PipelineDAG:
-        pipeline_dag = PipelineDAG()
+        self.pipeline_dag = PipelineDAG()
         for element in self.elements:
-            pipeline_dag.append(element)
-        return pipeline_dag
+            self.pipeline_dag.append(element)
+        self.pipeline_dag.walk()

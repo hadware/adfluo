@@ -1,10 +1,10 @@
 from abc import ABCMeta, abstractmethod
-from collections import OrderedDict
-from typing import List, Dict, Any, Optional, Iterable, Set, Union
+from collections import OrderedDict, deque
+from typing import List, Dict, Any, Optional, Iterable, Deque
 
 from .loader import DatasetLoader
 from .pipeline import ExtractionPipeline
-from .processors import BatchProcessor, SampleProcessor, SampleInputProcessor
+from .processors import BatchProcessor, SampleProcessor, SampleInputProcessor, SampleFeatureProcessor
 from .samples import Sample
 
 SampleID = str
@@ -33,6 +33,11 @@ class BaseGraphNode(metaclass=ABCMeta):
     @abstractmethod
     def __getitem__(self, sample: Sample) -> SampleData:
         pass
+
+    def replace_parent(self, old_parent: 'BaseGraphNode',
+                       new_parent: 'BaseGraphNode'):
+        parent_idx = self.parents.index(old_parent)
+        self.parents[parent_idx] = new_parent
 
 
 class CachedNode(BaseGraphNode, metaclass=ABCMeta):
@@ -118,24 +123,25 @@ class BatchProcessorNode(CachedNode):
         return self.processor(sample, parents_output, fail_on_error=True)
 
 
-# TODO: remove: should be replaced by regular ProcessorNode using an inputprocessor
-class SampleDataNode(CachedNode):
-    """Caches each sample's input data retrieved from the dataset (to prevent
-    it from being recomputed if it's costly.). Its parent node in the DAG
-    is always a `RootNode` """
+class FeatureNode(SampleProcessorNode):
+    """Doesn't do any processing, just here as a passthrough node from
+    which to pull samples for a specific feature"""
 
-    def __init__(self, root_node: 'RootNode', feat_input: str):
-        self.feat_input = feat_input
-        self.parents = [root_node]
+    processor: SampleFeatureProcessor
 
-    def __hash__(self):
-        return hash(self.feat_input)
+    def ancestor_hash(self) -> float:
+        # TODO: document
+        return hash(self)
 
-    def compute_sample(self, sample: Sample) -> Any:
-        return sample.get_data(self.feat_input)
+
+class InputNode(SampleProcessorNode):
+    # TODO: doc
+    processor: SampleInputProcessor
 
 
 class RootNode(BaseGraphNode):
+    children: List[InputNode] = []
+    parents = None
 
     def __init__(self):
         self._loader: Optional[DatasetLoader] = None
@@ -153,25 +159,35 @@ class RootNode(BaseGraphNode):
         return sample
 
 
-class FeatureNode(SampleProcessorNode):
-    """Doesn't do any processing, just here as a passthrough node from
-    which to pull samples for a specific feature"""
-
-    def ancestor_hash(self) -> float:
-        # TODO: document
-        return hash(self)
-
-
 class ExtractionDAG:
 
     def __init__(self):
-        self.nodes: Set[BaseGraphNode] = set()
+        # stores all the processing (intput, feature and processor) nodes from
+        # the dag
+        self.nodes: List[BaseGraphNode] = list()
+        # stores only the feature nodes
         self.feature_nodes: Dict[str, FeatureNode] = dict()
+        # one and only root from the DAG
         self.root_node: RootNode = RootNode()
         self._loader: Optional[DatasetLoader] = None
+        self._needs_dependency_solving = False
+
+    def genealogical_search(self, searched_node: BaseGraphNode) -> Optional[BaseGraphNode]:
+        """Search the DAG for a node that is the same node and has the same
+        ancestry as the searched node. If nothing is found, returns None"""
+        for dag_node in self.nodes:
+            if dag_node.ancestor_hash() == searched_node.ancestor_hash():
+                return dag_node
+        return None
 
     def add_pipeline(self, pipeline: ExtractionPipeline):
-        pass
+        feature_nodes = pipeline.pipeline_dag.output_nodes
+        nodes_stack: Deque[SampleProcessorNode] = deque(feature_nodes)
+        # registering feature nodes (and checking that they're not already present)
+        for feat_node in feature_nodes:
+            assert feat_node.processor.feat_name not in self.feature_nodes
+            self.feature_nodes[feat_node.processor.feat_name] = feat_node
+
         # algorithm outline:
         # stack = list(feature leafs)
         # for node in stack:
@@ -179,10 +195,44 @@ class ExtractionDAG:
         # - check if parent nodes hash is found somewhere in the tree
         # - if parent node hash is found, connect current node to DAG node
         # - else, add parent node to stack
+        while nodes_stack:
+            node = nodes_stack.pop()
+            # an input node cannot be added to the
+            if isinstance(node.processor, SampleInputProcessor):
+                node.parents = [self.root_node]
+                continue
+
+            self.nodes.append(node)
+            for node_parent in list(node.parents):
+                dag_node = self.genealogical_search(node_parent)
+                if dag_node is not None:
+                    # replace current parent with dag parent
+                    node.replace_parent(node_parent, dag_node)
+                    # add the current node as a child to the dag parent
+                    dag_node.children.append(node)
+                else:
+                    nodes_stack.appendleft(node_parent)
+
+        self._needs_dependency_solving = True
 
     def solve_dependencies(self):
         """Connects inputs that are actually features to the corresponding
         `FeatureNode`"""
+        root_children = self.root_node.children
+        for input_node in list(root_children):
+            feature_node = self.feature_nodes.get(input_node.processor.input)
+            # if this input node isn't a feature, skip
+            if feature_node is None:
+                continue
+            # rIemove that input node and link its children to a feature node,
+            # that will act as a cache
+            for child_node in input_node.children:
+                child_node.replace_parent(input_node, feature_node)
+            # removing the input node from the root node's children
+            root_children.remove(input_node)
+
+    def remove_passthrough(self):
+        pass  # TODO
 
     def set_loader(self, loader: DatasetLoader):
         self._loader = loader
