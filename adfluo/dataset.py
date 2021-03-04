@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Set
-
+from typing import Iterable, List, Dict, Any, Set
 
 class Sample(ABC):
     _features: Dict[str, Any] = {}
@@ -59,3 +58,32 @@ class DictSample(Sample):
 
     def get_data(self, data_name: str):
         return self.sample_dict[data_name]
+
+class DatasetLoader(ABC):
+    """
+    Child classes of this class should take care of loading a dataset
+    and formatting it to samples, then storing it into the sample
+    attribute.
+    """
+
+    @abstractmethod
+    def __len__(self):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def __iter__(self) -> Iterable[Sample]:
+        raise NotImplementedError()
+
+
+class ListLoader(DatasetLoader):
+
+    def __init__(self, samples: List[Dict, Sample]):
+        self._samples = samples
+
+    def __len__(self):
+        return len(self._samples)
+
+    def __iter__(self):
+        return iter(self._samples)
+
+

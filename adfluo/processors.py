@@ -6,7 +6,7 @@ from typing import Any, List, Tuple, Callable, TYPE_CHECKING, Hashable
 
 from sortedcontainers import SortedDict
 
-from .samples import Sample
+from .dataset import Sample
 from .utils import logger
 
 if TYPE_CHECKING:

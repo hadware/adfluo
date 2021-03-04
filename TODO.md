@@ -22,6 +22,7 @@
 * for processor params, use pytorch-like semantics and obj introspection:
  def __init__(val: int):
     self.val = param(val)
+* idea for an eventual CLI tool: specify the object to load from a script in the current python namespace.
 
 # Future implementation Notes
 

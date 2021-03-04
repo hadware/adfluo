@@ -2,10 +2,9 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict, deque
 from typing import List, Dict, Any, Optional, Iterable, Deque
 
-from .loader import DatasetLoader
+from .dataset import DatasetLoader, Sample
 from .pipeline import ExtractionPipeline
 from .processors import BatchProcessor, SampleProcessor, SampleInputProcessor, SampleFeatureProcessor
-from .samples import Sample
 
 SampleID = str
 FeatureName = str

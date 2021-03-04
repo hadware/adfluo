@@ -3,9 +3,8 @@ from itertools import cycle
 from treelib import Tree, Node
 from typing import List, Generator, Any, Iterable, Tuple, Dict
 
-from .loader import DatasetLoader
+from .dataset import DatasetLoader, Sample
 from .processors import BaseProcessor
-from .samples import Sample
 
 
 class BackReferencedNode(Node):
