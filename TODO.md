@@ -23,6 +23,8 @@
  def __init__(val: int):
     self.val = param(val)
 * idea for an eventual CLI tool: specify the object to load from a script in the current python namespace.
+* use networkX and multipartite_graph to plot the processing DAG
+* use extras_requires( `pip install adfluo[plot]`) to install extra plotting dependencies
 
 # Future implementation Notes
 

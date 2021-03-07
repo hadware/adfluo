@@ -42,6 +42,8 @@ class BaseProcessor(ABC):
     def __setattr__(self, key, value):
         if isinstance(value, ProcessorParameter):
             self._params[key] = value
+        else:
+            super().__setattr__(key, value)
 
     def __getattribute__(self, item):
         return self._params.get(item,
