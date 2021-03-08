@@ -1,3 +1,0 @@
-tqdm
-dataclasses
-sortedcontainers>=2.3.0

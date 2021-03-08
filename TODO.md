@@ -19,12 +19,14 @@
 * for pickle (and maybe hdf5), add support for "direct store" feature (not stored in memory once computed,  
   directly put on disk in the resulting pickle)
 * add dataset-level pipelines to compute feature aggregates
-* for processor params, use pytorch-like semantics and obj introspection:
- def __init__(val: int):
-    self.val = param(val)
+* for processor params, add a dataclass-aware system that uses the dataclass
+  attributes as parameters
 * idea for an eventual CLI tool: specify the object to load from a script in the current python namespace.
 * use networkX and multipartite_graph to plot the processing DAG
 * use extras_requires( `pip install adfluo[plot]`) to install extra plotting dependencies
+* ask about names for 
+  - the extractor (ExtractionSet?)
+  - DatasetLoader?
 
 # Future implementation Notes
 
@@ -37,4 +39,12 @@
     case, dependencies between features are "naturally" expressed through the tree.
   - in this case, features would then become a passthrough processor
   - the cache mecanism could be tricky (the data could be stored twice: once in the
-    feature's DAG node, and once in the sample's feature storage)
+    feature's DAG node, and once in the sample's feature storage
+* Regarding the CLI tool (feature ideas, at random):
+  - for an extraction set, required inputs and the features it extracts
+  - display DAG (to PNG or as a matplotlib window)
+  - run an extraction
+    - select one or more features
+    - select the savemode (CSV, DF, Pickle, HDF5)
+    - just test if the required samples load
+  - for a dataset: the sample count

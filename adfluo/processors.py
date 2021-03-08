@@ -64,9 +64,9 @@ class BaseProcessor(ABC):
             return self.__class__.__name__
 
     def __rshift__(self, other: PipelineElement):
-        from .pipeline import (T, Feat, ExtractionPipeline, PIPELINE_TYPE_ERROR,
+        from .pipeline import (ExtractionPipeline, PIPELINE_TYPE_ERROR,
                                PipelineBuildError)
-        if isinstance(other, (BaseProcessor, T, Feat)):
+        if isinstance(other, BaseProcessor):
             return ExtractionPipeline([self, other])
         elif callable(other):
             return ExtractionPipeline([self, FunctionWrapperProcessor(other)])
@@ -74,6 +74,20 @@ class BaseProcessor(ABC):
             other.elements.insert(0, self)
         else:
             raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
+
+    def __add__(self, other: PipelineElement):
+        from .pipeline import (ExtractionPipeline, PIPELINE_TYPE_ERROR,
+                               PipelineBuildError)
+        # TODO
+        if isinstance(other, BaseProcessor):
+            self.elements.append_right(other)
+        elif callable(other):
+            self.elements.append_right(FunctionWrapperProcessor(other))
+        elif isinstance(other, ExtractionPipeline):
+            self.elements += other.elements
+        else:
+            raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
+
 
     @abstractmethod
     def __call__(self, *args, fail_on_error: bool) -> Any:

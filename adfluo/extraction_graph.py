@@ -38,6 +38,11 @@ class BaseGraphNode(metaclass=ABCMeta):
         parent_idx = self.parents.index(old_parent)
         self.parents[parent_idx] = new_parent
 
+    def replace_child(self, old_child: 'BaseGraphNode',
+                      new_child: 'BaseGraphNode'):
+        child_idx = self.children.index(old_child)
+        self.parents[child_idx] = new_child
+
 
 class CachedNode(BaseGraphNode, metaclass=ABCMeta):
     """An abstract type for nodes that caches data until it has been retrieved
@@ -223,14 +228,19 @@ class ExtractionDAG:
             # if this input node isn't a feature, skip
             if feature_node is None:
                 continue
-            # rIemove that input node and link its children to a feature node,
+            # remove that input node and link its children to a feature node,
             # that will act as a cache
             for child_node in input_node.children:
                 child_node.replace_parent(input_node, feature_node)
             # removing the input node from the root node's children
             root_children.remove(input_node)
+            self.nodes.remove(input_node)
 
     def remove_passthrough(self):
+        for node in list(self.nodes):
+            pass
+
+    def set_depth(self):
         pass  # TODO
 
     def set_loader(self, loader: DatasetLoader):

@@ -17,38 +17,6 @@ class PipelineBuildError(Exception):
     pass
 
 
-class T:
-    def __init__(self, *args):
-        for arg in args:
-            if not isinstance(arg, (Feat, BaseProcessor)):
-                raise TypeError(PIPELINE_TYPE_ERROR.format(obj_type=type(args)))
-        self.elements = args
-        self.check()
-
-    def check(self):
-        """Checking that if the tuple contains features or inputs, these
-        are placed at the *end* of the tuple"""
-        el_it = iter(self.elements)
-        for element in el_it:
-            if isinstance(element, (Feat, Input)):
-                break
-        for element in el_it:
-            assert isinstance(element, (Feat, Input))
-
-    def __len__(self):
-        return len(self.elements)
-
-    def __rshift__(self, other: PipelineElement):
-        if isinstance(other, (BaseProcessor, T, Feat)):
-            return ExtractionPipeline([self, other])
-        elif callable(other):
-            return ExtractionPipeline([self, FunctionWrapperProcessor(other)])
-        elif isinstance(other, ExtractionPipeline):
-            other.elements.insert(0, self)
-        else:
-            raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
-
-
 def wrap_processor(proc: BaseProcessor) -> Union[SampleProcessorNode,
                                                  BatchProcessorNode]:
     if isinstance(proc, Feat):
@@ -69,7 +37,7 @@ class BasePipeline(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def append(self, element: BaseProcessor):
+    def append_right(self, element: BaseProcessor):
         pass
 
 
@@ -88,7 +56,7 @@ class Branch(BasePipeline):
     def head(self, node: BaseGraphNode):
         self._head = node
 
-    def append(self, element: BaseProcessor):
+    def append_right(self, element: BaseProcessor):
         if self._head is None:
             assert isinstance(element, Input)
             self._head = SampleProcessorNode(element)
@@ -138,19 +106,6 @@ class PipelineDAG(BasePipeline):
             else:
                 self.input_nodes.append(node)
 
-    def create_branch(self, input_proc: Union[Feat, Input]):
-        assert isinstance(input_proc, (Input, Feat))
-        if isinstance(input_proc, Feat):
-            input_proc = Input(input_proc.feat_name, is_feat=True)
-        new_branch = Branch()
-        new_branch.append(input_proc)
-        self.branches.append(new_branch)
-
-    def convert_branch_to_dag(self, branch_id):
-        new_dag = PipelineDAG()
-        new_dag.branches = [self.branches[branch_id]]
-        self.branches[branch_id] = new_dag
-
     def split_branch(self, t: T):
         old_branch = self.branches[0]
         self.branches = []
@@ -166,28 +121,11 @@ class PipelineDAG(BasePipeline):
                 pipeline_branch.head = old_branch.head
                 new_pipeline = PipelineDAG()
                 new_pipeline.branches = [pipeline_branch]
-                new_pipeline.append(element)
+                new_pipeline.append_right(element)
                 self.branches.append(new_pipeline)
             else:
                 # TODO : better error
                 raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(element)))
-
-    def add_tuple(self, t: T):
-        assert len(self.branches) <= len(t)
-        for i, element in enumerate(t.elements):
-            if i < len(self.branches):
-                if isinstance(element, SampleProcessor):
-                    self.branches[i].append(element)
-                elif isinstance(element, T):
-                    if isinstance(self.branches[i], Branch):
-                        self.convert_branch_to_dag(i)
-                    self.branches[i].append(element)
-                else:
-                    # TODO : better error
-                    raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(element)))
-            else:
-                # create a new branch
-                self.create_branch(element)
 
     def join_branches(self, processor: BaseProcessor):
         # TODO : better error
@@ -202,12 +140,12 @@ class PipelineDAG(BasePipeline):
         new_branch.head = new_node
         self.branches = [new_branch]
 
-    def append(self, element: Union[T, Feat, BaseProcessor]):
+    def append_right(self, element: Union['PipelineDAG', BaseProcessor]):
         if isinstance(element, (Feat, BaseProcessor)):
             if len(self.branches) == 0:
                 self.create_branch(element)
             elif len(self.branches) == 1:
-                self.branches[0].append(element)
+                self.branches[0].append_right(element)
             else:
                 self.join_branches(element)
         elif isinstance(element, T):
@@ -218,27 +156,36 @@ class PipelineDAG(BasePipeline):
         else:
             raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(element)))
 
+    def append_left(self):
+        pass
+
 
 class ExtractionPipeline:
     """An extraction pipeline is a small DAG that describes the steps
     needed to extract one or several features."""
 
     def __init__(self,
-                 elements: List[Union[BaseProcessor, T, Feat]]):
-        self.elements = elements
+                 elements: List[BaseProcessor]):
+        self.pipeline_dag = PipelineDAG()
+        for e in elements:
+            self.pipeline_dag.append_right(e)
 
     def __rshift__(self, other: PipelineElement):
-        if isinstance(other, (BaseProcessor, T, Feat)):
-            self.elements.append(other)
+        if isinstance(other, (BaseProcessor, ExtractionPipeline)):
+            self.pipeline_dag.append_right(other)
         elif callable(other):
-            self.elements.append(FunctionWrapperProcessor(other))
+            self.pipeline_dag.append_right(FunctionWrapperProcessor(other))
+        else:
+            raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
+
+    def __add__(self, other: PipelineElement):
+        # TODO
+        if isinstance(other, BaseProcessor):
+            self.elements.append_right(other)
+        elif callable(other):
+            self.elements.append_right(FunctionWrapperProcessor(other))
         elif isinstance(other, ExtractionPipeline):
             self.elements += other.elements
         else:
             raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
 
-    def build_pipeline_tree(self) -> PipelineDAG:
-        self.pipeline_dag = PipelineDAG()
-        for element in self.elements:
-            self.pipeline_dag.append(element)
-        self.pipeline_dag.walk()

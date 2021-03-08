@@ -10,7 +10,6 @@ here = Path(__file__).parent.absolute()
 with open(here / Path('README.md')) as f:
     long_description = f.read()
 
-
 setup(
     name='adfluo',
     version='0.1.0',
@@ -29,6 +28,17 @@ setup(
     ],
     keywords='',
     packages=find_packages(exclude=['docs', 'tests']),
-    setup_requires=['pytest-runner', 'setuptools>=38.6.0'],  # >38.6.0 needed for markdown README.md
+    setup_requires=['setuptools>=38.6.0'],  # >38.6.0 needed for markdown README.md
     tests_require=['pytest'],
+    install_requires=[
+        "tqdm",
+        "dataclasses; python_version <'3.7'",
+        "sortedcontainers>=2.3.0"
+    ],
+    extras_requires={
+        "display": [
+            "matplotlib",
+            "networkX"
+        ]
+    }
 )
