@@ -64,29 +64,35 @@ class BaseProcessor(ABC):
             return self.__class__.__name__
 
     def __rshift__(self, other: PipelineElement):
+        # TODO
         from .pipeline import (ExtractionPipeline, PIPELINE_TYPE_ERROR,
                                PipelineBuildError)
+        new_pipeline = ExtractionPipeline()
+        new_pipeline.append(self)
         if isinstance(other, BaseProcessor):
-            return ExtractionPipeline([self, other])
-        elif callable(other):
-            return ExtractionPipeline([self, FunctionWrapperProcessor(other)])
+            new_pipeline.append(other)
         elif isinstance(other, ExtractionPipeline):
-            other.elements.insert(0, self)
+            new_pipeline.concatenate(other)
+        elif callable(other):
+            new_pipeline.append(FunctionWrapperProcessor(other))
         else:
             raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
+        return self
 
     def __add__(self, other: PipelineElement):
         from .pipeline import (ExtractionPipeline, PIPELINE_TYPE_ERROR,
                                PipelineBuildError)
-        # TODO
+        new_pipeline = ExtractionPipeline()
+        new_pipeline.append(self)
         if isinstance(other, BaseProcessor):
-            self.elements.append_right(other)
-        elif callable(other):
-            self.elements.append_right(FunctionWrapperProcessor(other))
+            new_pipeline.merge_proc(other)
         elif isinstance(other, ExtractionPipeline):
-            self.elements += other.elements
+            new_pipeline.merge_pipeline(other)
+        elif callable(other):
+            new_pipeline.merge_proc(FunctionWrapperProcessor(other))
         else:
             raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
+        return self
 
 
     @abstractmethod
