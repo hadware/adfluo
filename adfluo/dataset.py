@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Iterable, List, Dict, Any, Set
 
+
 class Sample(ABC):
     _features: Dict[str, Any] = {}
     _dropped_features: Set[str] = set()
@@ -49,15 +50,16 @@ class Sample(ABC):
 class DictSample(Sample):
 
     def __init__(self, sample_dict: Dict[str, Any], sample_id: int):
-        self.sample_id = sample_id
+        self.sample_id = sample_dict.get("id", str(sample_id))
         self.sample_dict = sample_dict
 
     @property
     def id(self):
-        return str(self.sample_id)
+        return self.sample_id
 
     def get_data(self, data_name: str):
         return self.sample_dict[data_name]
+
 
 class DatasetLoader(ABC):
     """
@@ -78,12 +80,15 @@ class DatasetLoader(ABC):
 class ListLoader(DatasetLoader):
 
     def __init__(self, samples: List[Dict, Sample]):
-        self._samples = samples
+        self._samples: List[Sample] = []
+        # Wrapping dictionnaries in a sample dict
+        for i, sample in enumerate(samples):
+            if isinstance(sample, dict):
+                sample = DictSample(sample, i)
+            self._samples.append(sample)
 
     def __len__(self):
         return len(self._samples)
 
     def __iter__(self):
         return iter(self._samples)
-
-

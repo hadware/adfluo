@@ -18,10 +18,10 @@ class BaseStorage:
         self._data: Dict[SampleID, Dict[Feature, Any]] = defaultdict(dict)
         self._features: Set[Feature] = set()
 
-    def store_feat(self, feature: str, data: Dict[Sample, Any]):
+    def store_feat(self, feature: str, data: Dict[SampleID, Any]):
         self._features.add(feature)
-        for sample, value in data.items():
-            self._data[sample.id][feature] = value
+        for sample_id, value in data.items():
+            self._data[sample_id][feature] = value
 
     def store_sample(self, sample: Sample, data: Dict[Feature, Any]):
         self._features.update(set(data.keys()))

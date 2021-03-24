@@ -1,13 +1,14 @@
 import sys
 from abc import ABC, abstractmethod
+from dataclasses import is_dataclass, fields
 from dis import get_instructions
 from inspect import signature
-from typing import Any, List, Tuple, Callable, TYPE_CHECKING, Hashable
+from typing import Any, List, Tuple, Callable, TYPE_CHECKING, Hashable, Optional
 
 from sortedcontainers import SortedDict
 
 from .dataset import Sample
-from .utils import logger
+from .utils import logger, extraction_policy
 
 if TYPE_CHECKING:
     from .pipeline import PipelineElement
@@ -24,7 +25,7 @@ def param(value: Hashable) -> Any:
 
 class BaseProcessor(ABC):
     """Baseclass for a processor from the feature extraction pipeline"""
-    _params: SortedDict = SortedDict()
+    _params_dict: SortedDict = SortedDict()
     _current_sample: Sample = None
 
     @property
@@ -35,19 +36,27 @@ class BaseProcessor(ABC):
     def nb_args(self):
         return len(signature(self.process).parameters)
 
+    @property
+    def _params(self):
+        params = self._params_dict.copy()
+        if is_dataclass(self):
+            for field in fields(self):
+                params[field.name] = self.__getattribute__(field.name)
+        return params
+
     def process(self, *args) -> Any:
         """Processes just one sample"""
         raise NotImplemented()
 
     def __setattr__(self, key, value):
         if isinstance(value, ProcessorParameter):
-            self._params[key] = value
+            self._params_dict[key] = value.value
         else:
             super().__setattr__(key, value)
 
     def __getattribute__(self, item):
-        return self._params.get(item,
-                                default=super().__getattribute__(item))
+        return self._params_dict.get(item,
+                                     default=super().__getattribute__(item))
 
     def __hash__(self):
         return hash((self.__class__, tuple(self._params.items())))
@@ -64,7 +73,6 @@ class BaseProcessor(ABC):
             return self.__class__.__name__
 
     def __rshift__(self, other: PipelineElement):
-        # TODO
         from .pipeline import (ExtractionPipeline, PIPELINE_TYPE_ERROR,
                                PipelineBuildError)
         new_pipeline = ExtractionPipeline()
@@ -95,23 +103,13 @@ class BaseProcessor(ABC):
         return self
 
 
-    @abstractmethod
-    def __call__(self, *args, fail_on_error: bool) -> Any:
-        pass
-
-
 class SampleProcessor(BaseProcessor):
     """Processes one sample after the other, independently"""
 
-    def __call__(self, sample: Sample, sample_data: Tuple[Any], fail_on_error: bool) -> Any:
+    def __call__(self, sample: Sample, sample_data: Tuple[Any]) -> Any:
 
         # TODO: if there is an error and fail_on_error is false,
         #  maybe set the sample to None instead of the value
-
-        # if the current sample being processed is None, the processor
-        # acts as a passthrough
-        if sample_data is None:
-            return None
 
         # trying to process the sample. If an error is raised, two
         # possible outcomes:
@@ -123,7 +121,7 @@ class SampleProcessor(BaseProcessor):
             self._current_sample = sample
             processed_sample = self.process(*sample_data)
         except Exception as e:
-            if fail_on_error:
+            if not extraction_policy.skip_errors:
                 tb = sys.exc_info()[2]
                 raise type(e)(("In processor %s, on sample %s : "
                                % (repr(self), sample.id)) +
@@ -131,9 +129,9 @@ class SampleProcessor(BaseProcessor):
             else:
                 logger.warning("Got error in processor %s on sample %s : %s" %
                                (type(self).__name__, sample.id, str(e)))
-                return None
+                return None, None
         else:
-            return processed_sample
+            return sample, processed_sample
 
 
 class FunctionWrapperMixin:
@@ -199,27 +197,27 @@ class SampleInputProcessor(SampleProcessor):
 Input = SampleInputProcessor
 
 
-class PassThroughProcessor(SampleProcessor):
-    """Processor that acts as a passthrough, doesn't do anything"""
+class PrinterProcessor(SampleProcessor):
 
-    def __hash__(self):
-        return hash(self.__class__)
+    def __init__(self, name: Optional[str] = None):
+        self.name = param(name)
 
     def process(self, *args) -> Tuple:
+        print(f"{self.name} received {args} ")
         return args
 
 
-Pass = PassThroughProcessor()
+Printer = PrinterProcessor()
 
 
-class SampleFeatureProcessor(PassThroughProcessor):
+class SampleFeatureProcessor(SampleProcessor):
     """A subtype of `PassThroughProcessor` used to reference a feature"""
 
     def __init__(self, feat_name: str):
-        self.feat_name = feat_name
+        self.feature = param(feat_name)
 
-    def __hash__(self):
-        return hash((self.__class__, self.feat_name))
+    def process(self, *args) -> Tuple:
+        return args
 
 
 Feat = SampleFeatureProcessor

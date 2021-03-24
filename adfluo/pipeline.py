@@ -27,7 +27,7 @@ def wrap_processor(proc: BaseProcessor) -> ProcessorNode:
     else:
         raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(proc)))
 
-# TODO : add "connect" function and steamline some of this code
+# TODO : add "connect" function and streamline some of this code
 class ExtractionPipeline:
 
     def __init__(self):
@@ -43,42 +43,36 @@ class ExtractionPipeline:
     def nb_outputs(self):
         return len(self.outputs)
 
-    def walk(self):
-        # TODO : rework this.
-        #  - Input/output nodes still need to be checked
-        #  - "inner" nodes can't be input/feature nodes
+    def check(self):
+        """
+        Checks that :
+         - input nodes are all `InputNode` or `FeatureNode`
+         - output nodes are all `FeatureNode`
+         - "inner" nodes can't be input/feature nodes
+         """
 
-        """Starting from the head of its branches, goes up the DAG to gather
-        input and output nodes"""
-        self.input_nodes, self.output_nodes, self.all_nodes = [], [], []
-        nodes_stack: Deque[BaseGraphNode] = deque()
-        for branch in self.branches:
-            self.output_nodes.append(branch.head)
-            # TODO: better error
-            assert isinstance(branch.head, FeatureNode)
-            nodes_stack.appendleft(branch.head)
-
-        self.all_nodes += self.output_nodes
-
-        while nodes_stack:
-            # if a node on the stack has parents, put them on the stack, else,
-            # it must be an input node, and put it in the input nodes list
-            node = nodes_stack.pop()
-            self.all_nodes.append(node)
-            if node.parents:
-                for parent in node.parents:
-                    nodes_stack.appendleft(parent)
-            else:
-                self.input_nodes.append(node)
+        # TODO : better error
+        for node in self.inputs:
+            assert isinstance(node, (InputNode, FeatureNode))
+        for node in self.outputs:
+            assert isinstance(node, FeatureNode)
+        for node in self.all_nodes:
+            if node not in self.inputs + self.outputs:
+                assert not isinstance(node, (FeatureNode, InputNode))
 
     def append(self, proc: BaseProcessor):
         new_node = wrap_processor(proc)
+        # extraction DAG has not node: new dag!
         if self.nb_inputs == 0:
             self.inputs = [new_node]
+
+        # "regular" case: adding a node after the last one
         elif self.nb_outputs == 1:
             old_tail = self.inputs[-1]
             old_tail.children = [new_node]
             new_node.parents = [old_tail]
+
+        # adding a node as a merger of several branches
         else:
             assert self.nb_outputs == proc.nb_args
             new_node.parents = self.outputs
