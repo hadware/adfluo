@@ -1,15 +1,13 @@
 from abc import ABC, abstractmethod
-from typing import Iterable, List, Dict, Any, Set
+from typing import Iterable, List, Dict, Any, Union
 
 
 class Sample(ABC):
-    _features: Dict[str, Any] = {}
-    _dropped_features: Set[str] = set()
 
     @property
     @abstractmethod
     def id(self):
-        pass
+        raise NotImplementedError()
 
     def __hash__(self):
         return hash(self.id)
@@ -53,7 +51,7 @@ class DatasetLoader(ABC):
 
 class ListLoader(DatasetLoader):
 
-    def __init__(self, samples: List[Dict, Sample]):
+    def __init__(self, samples: List[Union[Dict, Sample]]):
         self._samples: List[Sample] = []
         # Wrapping dictionnaries in a sample dict
         for i, sample in enumerate(samples):

@@ -14,6 +14,7 @@
   to support splitting the tuple onto several processors ("tuple output unpacking")
 * add support for list of samples/ and samples-as-dicts for input datasets
 * add support for csv, df, pickle and dict extraction
+* add support for per feature/sample pickle file (for very large features) -> in a new method
 * add support for drop-on-save features (maybe find a better name)
 * add support for fully uncached extraction
 * for pickle (and maybe hdf5), add support for "direct store" feature (not stored in memory once computed,  

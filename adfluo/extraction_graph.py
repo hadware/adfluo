@@ -1,10 +1,14 @@
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict, deque
-from typing import List, Dict, Any, Optional, Iterable, Deque, Tuple, Set
+from typing import List, Dict, Any, Optional, Iterable, Deque, Tuple, Set, TYPE_CHECKING
+
+from tqdm import tqdm
 
 from .dataset import DatasetLoader, Sample
-from .pipeline import ExtractionPipeline
 from .processors import BatchProcessor, SampleProcessor, SampleInputProcessor, SampleFeatureProcessor
+
+if TYPE_CHECKING:
+    from .pipeline import ExtractionPipeline
 
 SampleID = str
 FeatureName = str
@@ -12,7 +16,10 @@ SampleData = Any
 
 
 class BadSampleException(Exception):
-    pass
+
+    def __init__(self, sample: Sample, *args):
+        self.sample = sample
+        super().__init__(*args)
 
 
 class BaseGraphNode(metaclass=ABCMeta):
@@ -20,6 +27,7 @@ class BaseGraphNode(metaclass=ABCMeta):
     def __init__(self):
         self.children: List['BaseGraphNode'] = []
         self.parents: List['BaseGraphNode'] = []
+        self._depth: Optional[int] = None
 
     @abstractmethod
     def __hash__(self):
@@ -27,6 +35,16 @@ class BaseGraphNode(metaclass=ABCMeta):
 
     def __eq__(self, other: 'BaseGraphNode'):
         return hash(self) == hash(other)
+
+    @property
+    def depth(self):
+        if self._depth is None:
+            self._depth = max(parent.depth for parent in self.parents)
+        return self._depth
+
+    @depth.setter
+    def depth(self, value: int):
+        self._depth = value
 
     def iter_all_samples(self) -> Iterable[Sample]:
         return self.parents[0].iter_all_samples()
@@ -66,7 +84,7 @@ class CachedNode(BaseGraphNode, metaclass=ABCMeta):
 
     def from_cache(self, sample: Sample):
         if sample in self._failed_samples:
-            raise BadSampleException()
+            raise BadSampleException(sample)
 
         if sample in self._samples_cache:
             # retrieving the sample and incrementing the cache hits counter
@@ -96,7 +114,7 @@ class CachedNode(BaseGraphNode, metaclass=ABCMeta):
                 sample_data = self.compute_sample(sample)
             except Exception:
                 self._failed_samples.add(sample.id)
-                raise BadSampleException()
+                raise BadSampleException(sample)
             else:
                 self.to_cache(sample, sample_data)
                 return sample_data
@@ -167,6 +185,7 @@ class RootNode(BaseGraphNode):
         self.children: List[InputNode] = []
         self.parents = None
         self._loader: Optional[DatasetLoader] = None
+        self._depth = 0
 
     def __hash__(self):
         return hash(self.__class__)
@@ -193,6 +212,7 @@ class ExtractionDAG:
         self.root_node: RootNode = RootNode()
         self._loader: Optional[DatasetLoader] = None
         self._needs_dependency_solving = False
+        self._features_order: Optional[List[FeatureName]] = None
 
     def genealogical_search(self, searched_node: BaseGraphNode) -> Optional[BaseGraphNode]:
         """Search the DAG for a node that is the same node and has the same
@@ -202,8 +222,7 @@ class ExtractionDAG:
                 return dag_node
         return None
 
-    def add_pipeline(self, pipeline: ExtractionPipeline):
-        # TODO: update and check agains tthe new pipeline implementation
+    def add_pipeline(self, pipeline: 'ExtractionPipeline'):
         feature_nodes = pipeline.outputs
         nodes_stack: Deque[SampleProcessorNode] = deque(feature_nodes)
         # registering feature nodes (and checking that they're not already present)
@@ -242,43 +261,72 @@ class ExtractionDAG:
         """Connects inputs that are actually features to the corresponding
         `FeatureNode`"""
         root_children = self.root_node.children
-        for input_node in list(root_children):
-            feature_node = self.feature_nodes.get(input_node.processor.input)
+        for node in list(root_children):
+            if isinstance(node, InputNode):
+                feature_name = node.processor.input
+            else:  # it's a feature node
+                feature_name = node.processor.feature
+
+            feature_node = self.feature_nodes.get(feature_name)
+
             # if this input node isn't a feature, skip
             if feature_node is None:
-                continue
+                if isinstance(node, FeatureNode):
+                    raise ValueError(f"No matching feature "
+                                     f"in graph for input node {feature_node}")
+                else:
+                    continue
+
             # remove that input node and link its children to a feature node,
             # that will act as a cache
-            for child_node in input_node.children:
-                child_node.replace_parent(input_node, feature_node)
+            for child_node in node.children:
+                child_node.replace_parent(node, feature_node)
             # removing the input node from the root node's children
-            root_children.remove(input_node)
-            self.nodes.remove(input_node)
+            root_children.remove(node)
+            self.nodes.remove(node)
 
-    def set_depth(self):
-        pass  # TODO
+    def compute_feature_order(self) :
+        # sorting feature node by increasing depth
+        sorted_feature_nodes = sorted(self.feature_nodes.values(),
+                                      key=lambda node: node.depth)
+        self._features_order = [node.processor.feature
+                                for node in sorted_feature_nodes]
 
     def set_loader(self, loader: DatasetLoader):
         self._loader = loader
         self.root_node.set_loader(loader)
 
-    def extract_feature_wise(self, feature_name: str) -> Dict[SampleID, Any]:
+    def extract_feature_wise(self, feature_name: str, show_progress: bool) \
+            -> Dict[SampleID, Any]:
         """Extract a feature for all samples"""
         feat_dict = {}
         feat_node = self.feature_nodes[feature_name]
-        for sample in self._loader:
+
+        if show_progress:
+            it = tqdm(self._loader, desc=feature_name)
+        else:
+            it = self._loader
+
+        for sample in it:
             try:
                 feat_dict[sample.id] = feat_node[sample]
             except BadSampleException:
-                feat_dict[sample.id] = None
+                pass
         return feat_dict
 
-    def extract_sample_wise(self, sample: Sample) -> Dict[FeatureName, Any]:
+    def extract_sample_wise(self, sample: Sample, show_progress: bool) \
+            -> Dict[FeatureName, Any]:
         """Extract all features for a unique sample"""
         feat_dict = {}
-        for feature_name, feature_node in self.feature_nodes.items():
+
+        if show_progress:
+            it = tqdm(self.feature_nodes.items(), desc=sample.id)
+        else:
+            it = self.feature_nodes.items()
+
+        for feature_name, feature_node in it:
             try:
                 feat_dict[feature_name] = feature_node[sample]
             except BadSampleException:
-                feat_dict[feature_name] = None
+                pass
         return feat_dict

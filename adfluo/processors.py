@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from dataclasses import is_dataclass, fields
 from dis import get_instructions
 from inspect import signature
-from typing import Any, List, Tuple, Callable, TYPE_CHECKING, Hashable, Optional
+from typing import Any, List, Tuple, Callable, TYPE_CHECKING, Hashable, Optional, Union
 
 from sortedcontainers import SortedDict
 
@@ -25,6 +25,7 @@ def param(value: Hashable) -> Any:
 
 class BaseProcessor(ABC):
     """Baseclass for a processor from the feature extraction pipeline"""
+    # TODO : change _params_dict
     _params_dict: SortedDict = SortedDict()
     _current_sample: Sample = None
 
@@ -50,13 +51,14 @@ class BaseProcessor(ABC):
 
     def __setattr__(self, key, value):
         if isinstance(value, ProcessorParameter):
-            self._params_dict[key] = value.value
+            param_dict = super().__getattribute__("_params_dict")
+            param_dict[key] = value.value
         else:
             super().__setattr__(key, value)
 
     def __getattribute__(self, item):
-        return self._params_dict.get(item,
-                                     default=super().__getattribute__(item))
+        param_dict = super().__getattribute__("_params_dict")
+        return param_dict.get(item, super().__getattribute__(item))
 
     def __hash__(self):
         return hash((self.__class__, tuple(self._params.items())))
@@ -72,7 +74,7 @@ class BaseProcessor(ABC):
         else:
             return self.__class__.__name__
 
-    def __rshift__(self, other: PipelineElement):
+    def __rshift__(self, other: 'PipelineElement'):
         from .pipeline import (ExtractionPipeline, PIPELINE_TYPE_ERROR,
                                PipelineBuildError)
         new_pipeline = ExtractionPipeline()
@@ -87,7 +89,7 @@ class BaseProcessor(ABC):
             raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
         return self
 
-    def __add__(self, other: PipelineElement):
+    def __add__(self, other: 'PipelineElement'):
         from .pipeline import (ExtractionPipeline, PIPELINE_TYPE_ERROR,
                                PipelineBuildError)
         new_pipeline = ExtractionPipeline()
@@ -107,9 +109,6 @@ class SampleProcessor(BaseProcessor):
     """Processes one sample after the other, independently"""
 
     def __call__(self, sample: Sample, sample_data: Tuple[Any]) -> Any:
-
-        # TODO: if there is an error and fail_on_error is false,
-        #  maybe set the sample to None instead of the value
 
         # trying to process the sample. If an error is raised, two
         # possible outcomes:
@@ -168,7 +167,7 @@ class BatchProcessor(SampleProcessor):
     dataset to be able to process individual samples"""
 
     @abstractmethod
-    def full_dataset_process(self, samples_data: List[Any, Tuple]):
+    def full_dataset_process(self, samples_data: List[Union[Any, Tuple]]):
         """Processes the full dataset of samples. Doesn't return anything,
         store the results as instance attributes"""
         pass
@@ -177,21 +176,11 @@ class BatchProcessor(SampleProcessor):
 class SampleInputProcessor(SampleProcessor):
     """Processor that pulls data from samples."""
 
-    def __init__(self, input: str, is_feat: bool = False):
-        # is_feat is not part of the hash because input data names and features names
-        # are part of the same set and are unique in that set
-        super().__init__(input=input)
-        self.input = input
-        self.is_feat = is_feat
-
-    def __hash__(self):
-        return hash(self.input)
+    def __init__(self, input: str):
+        self.input = param(input)
 
     def process(self, sample: Sample) -> Any:
-        if self.is_feat:
-            return sample.get_feature(feature_name=self.input)
-        else:
-            return sample.get_data(data_name=self.input)
+        return sample[self.input]
 
 
 Input = SampleInputProcessor
@@ -226,7 +215,7 @@ Feat = SampleFeatureProcessor
 class DatasetAggregator(BaseProcessor):
 
     @abstractmethod
-    def aggregate(self, samples_data: List[Any, Tuple]) -> Any:
+    def aggregate(self, samples_data: List[Union[Any, Tuple]]) -> Any:
         pass
 
     def process(self, *args) -> Any:
@@ -241,7 +230,7 @@ class FunctionWrapperAggregator(DatasetAggregator, FunctionWrapperMixin):
     def __repr__(self):
         return f"Aggregator({self.fun.__name__})"
 
-    def aggregate(self, samples_data: List[Any, Tuple]) -> Any:
+    def aggregate(self, samples_data: List[Union[Any, Tuple]]) -> Any:
         return self.fun(samples_data)
 
 

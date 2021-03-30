@@ -1,4 +1,5 @@
 import csv
+import json
 import pickle
 from collections import defaultdict
 from csv import Dialect
@@ -43,7 +44,7 @@ class CSVStorage(BaseStorage):
     def __init__(self,
                  indexing: StorageIndexing,
                  output_file: TextIO,
-                 dialect: Optional[Dialect]):
+                 dialect: Optional[Dialect] = None):
         super().__init__(indexing)
         self.file = output_file
         if dialect is None:
@@ -77,6 +78,31 @@ class PickleStorage(BaseStorage):
 
     def write(self):
         pickle.dump(self.get_value(), self.file)
+
+
+class PickleStoragePerFile(BaseStorage):
+    # TODO
+
+    def __init__(self,
+                 indexing: StorageIndexing,
+                 output_file: BinaryIO):
+        super().__init__(indexing)
+        self.file = output_file
+
+    def write(self):
+        pickle.dump(self.get_value(), self.file)
+
+
+class JSONStorage(BaseStorage):
+
+    def __init__(self,
+                 indexing: StorageIndexing,
+                 output_file: TextIO):
+        super().__init__(indexing)
+        self.file = output_file
+
+    def write(self):
+        json.dump(self.get_value(), self.file)
 
 
 class DataFrameStorage(BaseStorage):

@@ -1,7 +1,6 @@
-from collections import deque
-from typing import List, Union, Deque
+from typing import List, Union
 
-from .extraction_graph import BaseGraphNode, SampleProcessorNode, BatchProcessorNode, FeatureNode, InputNode
+from .extraction_graph import SampleProcessorNode, BatchProcessorNode, FeatureNode, InputNode
 from .processors import BaseProcessor, FunctionWrapperProcessor, SampleProcessor, BatchProcessor, \
     Input, Feat
 

@@ -2,7 +2,7 @@ import logging
 
 from dataclasses import dataclass
 
-logger = logging.getLogger("mekhane")
+logger = logging.getLogger("adfluo")
 
 
 @dataclass
