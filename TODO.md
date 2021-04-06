@@ -28,6 +28,9 @@
 * ask about names for 
   - the extractor (ExtractionSet?)
   - DatasetLoader?
+* migrate processors to full dataclass ?
+* add `F` wrapper for functions (necessary: `(a >> b >> c)` won't work if `a, b, c` are functions)
+* possibility of calling a pipeline right away on a sample/dataset
 
 # Future implementation Notes
 
@@ -49,3 +52,16 @@
     - select the savemode (CSV, DF, Pickle, HDF5)
     - just test if the required samples load
   - for a dataset: the sample count
+  
+```shell
+adfluo extract module.my_extractor module.my_dataloader --feats f_a f_b --samples samp_a samp_b
+adfluo extract module.my_extractor module.my_dataloader --format csv
+adfluo extract module.my_extractor module.my_dataloader --format pickle -o filename.pckl
+adfluo extract module.my_extractor module.my_dataloader --test_samples # test all required data fields
+adfluo extract module.my_extractor module.my_dataloader --indexing feature
+adfluo extract module.my_extractor module.my_dataloader --extraction_order sample
+adfluo extract module.my_extractor module.my_dataloader --hide_progress
+adfluo show module.my_extractor
+adfluo show module.my_extractor --dag -o dag.png
+adfluo show module.my_dataloader
+```
