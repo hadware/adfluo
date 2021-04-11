@@ -4,7 +4,7 @@ from .extraction_graph import SampleProcessorNode, BatchProcessorNode, FeatureNo
 from .processors import BaseProcessor, FunctionWrapperProcessor, SampleProcessor, BatchProcessor, \
     Input, Feat
 
-PipelineElement = Union['ExtractionPipeline', BaseProcessor, 'T', 'Feat']
+PipelineElement = Union['ExtractionPipeline', BaseProcessor]
 ProcessorNode = Union[SampleProcessorNode, BatchProcessorNode]
 
 PIPELINE_TYPE_ERROR = "Invalid object in pipeline of type {obj_type}"
@@ -118,8 +118,6 @@ class ExtractionPipeline:
             self.append(other)
         elif isinstance(other, ExtractionPipeline):
             self.concatenate(other)
-        elif callable(other):
-            self.append(FunctionWrapperProcessor(other))
         else:
             raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
         return self
@@ -129,8 +127,6 @@ class ExtractionPipeline:
             self.merge_proc(other)
         elif isinstance(other, ExtractionPipeline):
             self.merge_pipeline(other)
-        elif callable(other):
-            self.merge_proc(FunctionWrapperProcessor(other))
         else:
             raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
         return self

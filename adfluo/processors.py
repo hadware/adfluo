@@ -1,6 +1,5 @@
 import sys
 from abc import ABC, abstractmethod
-from dataclasses import is_dataclass, fields
 from dis import get_instructions
 from inspect import signature
 from typing import Any, List, Tuple, Callable, TYPE_CHECKING, Hashable, Optional, Union
@@ -16,18 +15,28 @@ if TYPE_CHECKING:
 
 class ProcessorParameter:
     def __init__(self, value: Hashable):
-        self.value = value
+        self.value: Hashable = value
 
 
-def param(value: Hashable) -> Any:
-    return ProcessorParameter(value)
+def param(default: Optional[Hashable] = None) -> Any:
+    return ProcessorParameter(default)
 
 
 class BaseProcessor(ABC):
-    """Baseclass for a processor from the feature extraction pipeline"""
-    # TODO : change _params_dict
-    _params_dict: SortedDict = SortedDict()
-    _current_sample: Sample = None
+    """Base class for a processor from the feature extraction pipeline"""
+
+    def __init__(self, **kwargs):
+        param_names = set(k for k, v in self.__class__.__dict__.items()
+                          if isinstance(v, ProcessorParameter))
+        for key, val in kwargs.items():
+            if key not in param_names:
+                raise AttributeError(f"Attribute {key} isn't a processor parameter")
+            setattr(self, key, val)
+
+        self.post_init()
+
+    def post_init(self):
+        pass
 
     @property
     def current_sample(self):
@@ -37,42 +46,43 @@ class BaseProcessor(ABC):
     def nb_args(self):
         return len(signature(self.process).parameters)
 
-    @property
-    def _params(self):
-        params = self._params_dict.copy()
-        if is_dataclass(self):
-            for field in fields(self):
-                params[field.name] = self.__getattribute__(field.name)
-        return params
-
+    @abstractmethod
     def process(self, *args) -> Any:
         """Processes just one sample"""
         raise NotImplemented()
 
+    @property
+    def _params(self) -> SortedDict:
+        param_dict = SortedDict()
+        for k, v in self.__class__.__dict__.items():
+            if isinstance(v, ProcessorParameter):
+                param_dict[k] = v
+        for k, v in self.__dict__.items():
+            if isinstance(v, ProcessorParameter):
+                param_dict[k] = v
+        return param_dict
+
     def __setattr__(self, key, value):
-        if isinstance(value, ProcessorParameter):
-            param_dict = super().__getattribute__("_params_dict")
-            param_dict[key] = value.value
-        else:
+        try:
+            # TODO: check that processor parameter has a value when instanciated
+            attribute = super().__getattribute__(key)
+            if isinstance(attribute, ProcessorParameter):
+                attribute.value = value
+        except AttributeError:
             super().__setattr__(key, value)
 
     def __getattribute__(self, item):
-        param_dict = super().__getattribute__("_params_dict")
-        return param_dict.get(item, super().__getattribute__(item))
+        attribute = super().__getattribute__(key)
+        if isinstance(attribute, ProcessorParameter):
+            return attribute.value
+        else:
+            return attribute
 
     def __hash__(self):
         return hash((self.__class__, tuple(self._params.items())))
 
     def __eq__(self, other):
         return hash(self) == hash(other)
-
-    def __repr__(self):
-        if self._params:
-            params = ",".join("%s=%s" % (key, val)
-                              for key, val in self._params.items())
-            return f"{self.__class__.__name__}({params})"
-        else:
-            return self.__class__.__name__
 
     def __rshift__(self, other: 'PipelineElement'):
         from .pipeline import (ExtractionPipeline, PIPELINE_TYPE_ERROR,
@@ -83,11 +93,9 @@ class BaseProcessor(ABC):
             new_pipeline.append(other)
         elif isinstance(other, ExtractionPipeline):
             new_pipeline.concatenate(other)
-        elif callable(other):
-            new_pipeline.append(FunctionWrapperProcessor(other))
         else:
             raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
-        return self
+        return new_pipeline
 
     def __add__(self, other: 'PipelineElement'):
         from .pipeline import (ExtractionPipeline, PIPELINE_TYPE_ERROR,
@@ -98,11 +106,9 @@ class BaseProcessor(ABC):
             new_pipeline.merge_proc(other)
         elif isinstance(other, ExtractionPipeline):
             new_pipeline.merge_pipeline(other)
-        elif callable(other):
-            new_pipeline.merge_proc(FunctionWrapperProcessor(other))
         else:
             raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
-        return self
+        return new_pipeline
 
 
 class SampleProcessor(BaseProcessor):
@@ -162,6 +168,9 @@ class FunctionWrapperProcessor(SampleProcessor, FunctionWrapperMixin):
         return self.fun(*args)
 
 
+F = FunctionWrapperProcessor
+
+
 class BatchProcessor(SampleProcessor):
     """Processor class that requires the full list of samples from the
     dataset to be able to process individual samples"""
@@ -175,9 +184,10 @@ class BatchProcessor(SampleProcessor):
 
 class SampleInputProcessor(SampleProcessor):
     """Processor that pulls data from samples."""
+    input: str = param()
 
     def __init__(self, input: str):
-        self.input = param(input)
+        super().__init__(input=input)
 
     def process(self, sample: Sample) -> Any:
         return sample[self.input]
@@ -187,9 +197,10 @@ Input = SampleInputProcessor
 
 
 class PrinterProcessor(SampleProcessor):
+    name: str = param()
 
     def __init__(self, name: Optional[str] = None):
-        self.name = param(name)
+        super().__init__(name=name)
 
     def process(self, *args) -> Tuple:
         print(f"{self.name} received {args} ")
@@ -201,9 +212,10 @@ Printer = PrinterProcessor()
 
 class SampleFeatureProcessor(SampleProcessor):
     """A subtype of `PassThroughProcessor` used to reference a feature"""
+    feat_name: str = param()
 
     def __init__(self, feat_name: str):
-        self.feature = param(feat_name)
+        super().__init__(feat_name=feat_name)
 
     def process(self, *args) -> Tuple:
         return args
