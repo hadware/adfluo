@@ -2,7 +2,7 @@ import sys
 from abc import ABC, abstractmethod
 from dis import get_instructions
 from inspect import signature
-from typing import Any, List, Tuple, Callable, TYPE_CHECKING, Hashable, Optional, Union
+from typing import Any, List, Tuple, Callable, TYPE_CHECKING, Hashable, Optional, Union, Set
 
 from sortedcontainers import SortedDict
 
@@ -28,10 +28,18 @@ class BaseProcessor(ABC):
     def __init__(self, **kwargs):
         param_names = set(k for k, v in self.__class__.__dict__.items()
                           if isinstance(v, ProcessorParameter))
+        # setting kwargs-defined parameter values
         for key, val in kwargs.items():
             if key not in param_names:
                 raise AttributeError(f"Attribute {key} isn't a processor parameter")
             setattr(self, key, val)
+            param_names.remove(key)
+
+        # remaining parameters are set to the default set in the class attribute
+        for param_key in param_names:
+            proc_param: ProcessorParameter = getattr(self, param_key)
+            setattr(self, param_key, proc_param.value)
+        self._current_sample: Optional[Sample] = None
 
         self.post_init()
 
@@ -52,37 +60,30 @@ class BaseProcessor(ABC):
         raise NotImplemented()
 
     @property
+    def _class_params(self) -> Set[str]:
+        return {k for k, v in self.__class__.__dict__.items()
+                if isinstance(v, ProcessorParameter)}
+
+    @property
     def _params(self) -> SortedDict:
+        class_params = self._class_params
         param_dict = SortedDict()
         for k, v in self.__class__.__dict__.items():
-            if isinstance(v, ProcessorParameter):
-                param_dict[k] = v
-        for k, v in self.__dict__.items():
-            if isinstance(v, ProcessorParameter):
-                param_dict[k] = v
+            if k in class_params:
+                param_dict[k] = getattr(self, k, None)
         return param_dict
-
-    def __setattr__(self, key, value):
-        try:
-            # TODO: check that processor parameter has a value when instanciated
-            attribute = super().__getattribute__(key)
-            if isinstance(attribute, ProcessorParameter):
-                attribute.value = value
-        except AttributeError:
-            super().__setattr__(key, value)
-
-    def __getattribute__(self, item):
-        attribute = super().__getattribute__(key)
-        if isinstance(attribute, ProcessorParameter):
-            return attribute.value
-        else:
-            return attribute
 
     def __hash__(self):
         return hash((self.__class__, tuple(self._params.items())))
 
     def __eq__(self, other):
         return hash(self) == hash(other)
+
+    def __repr__(self):
+        return "<%s(%s)>" % (
+            self.__class__.__name__,
+            ",".join(f"{key}={value!r}" for key, value in self._params.items())
+        )
 
     def __rshift__(self, other: 'PipelineElement'):
         from .pipeline import (ExtractionPipeline, PIPELINE_TYPE_ERROR,
@@ -142,9 +143,9 @@ class SampleProcessor(BaseProcessor):
 class FunctionWrapperMixin:
 
     def __init__(self, fun: Callable):
-        if len(signature(fun).parameters) != 1:
-            raise ValueError("Function must have one and only one parameter")
         self.fun = fun
+        if len(signature(fun).parameters) < 1:
+            raise ValueError("Function must have at least one parameter")
 
     @property
     def nb_args(self):
@@ -157,7 +158,7 @@ class FunctionWrapperMixin:
         return hash(instructions)
 
 
-class FunctionWrapperProcessor(SampleProcessor, FunctionWrapperMixin):
+class FunctionWrapperProcessor(FunctionWrapperMixin, SampleProcessor):
     """Used to wrap simple functions that can be used inline, without
     a processor"""
 
