@@ -31,6 +31,8 @@
 * migrate processors to full dataclass ?
 * add `F` wrapper for functions (necessary: `(a >> b >> c)` won't work if `a, b, c` are functions)
 * possibility of calling a pipeline right away on a sample/dataset
+* documentation on documentation https://diataxis.fr/
+* Deactivate settattr (make object frozen) during process call 
 
 # Future implementation Notes
 

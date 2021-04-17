@@ -128,6 +128,9 @@ class SampleProcessorNode(CachedNode):
         super().__init__()
         self.processor = processor
 
+    def __hash__(self):
+        return hash(self.processor)
+
     def compute_sample(self, sample: Sample) -> Any:
         parents_output = tuple(node[sample] for node in self.parents)
         return self.processor(sample, parents_output)
@@ -140,6 +143,9 @@ class BatchProcessorNode(CachedNode):
         self.processor = processor
         self.has_computed_batch = False
         self.batch_cache: OrderedDict[SampleID, Any] = OrderedDict()
+
+    def __hash__(self):
+        return hash(self.processor)
 
     def compute_batch(self):
         for sample in self.iter_all_samples():
@@ -259,18 +265,20 @@ class ExtractionDAG:
 
     def solve_dependencies(self):
         """Connects inputs that are actually features to the corresponding
-        `FeatureNode`"""
+        `FeatureNode` and disconnects them from the root node."""
         root_children = self.root_node.children
         for node in list(root_children):
             if isinstance(node, InputNode):
-                feature_name = node.processor.input
+                feature_name = node.processor.data_name
             else:  # it's a feature node
-                feature_name = node.processor.feature
+                feature_name = node.processor.feat_name
 
             feature_node = self.feature_nodes.get(feature_name)
 
             # if this input node isn't a feature, skip
             if feature_node is None:
+                # It's a feature, yet no feature was found in the graph...
+                # this a problem
                 if isinstance(node, FeatureNode):
                     raise ValueError(f"No matching feature "
                                      f"in graph for input node {feature_node}")

@@ -3,10 +3,10 @@ from typing import Any
 import pytest
 from sortedcontainers import SortedDict
 
-from adfluo.processors import param, SampleProcessor, F, F
-from dataclasses import dataclass
+from adfluo.dataset import DictSample
+from adfluo.processors import param, SampleProcessor, F, Input, Feat
 
-# TODO : check error raising for non-param arguments in kwargs
+
 def test_proc_params():
     class TestProc(SampleProcessor):
         a = param()
@@ -19,6 +19,9 @@ def test_proc_params():
     assert TestProc(a=1, b=2) == TestProc(a=1, b=2)
     assert TestProc(a=1, b="a") != TestProc(a=1, b="b")
     assert repr(TestProc(a=1, b=2)) == "<TestProc(a=1,b=2)>"
+
+    with pytest.raises(AttributeError, match="Attribute c isn't a processor parameter"):
+        TestProc(c=2)
 
 
 def test_processor_default_params():
@@ -57,9 +60,41 @@ def test_nb_args():
 
     def h():
         return "la menuiserie mec"
-    
+
     assert F(f).nb_args == 2
     assert F(g).nb_args == 1
 
     with pytest.raises(ValueError, match="Function must have at least one parameter"):
         F(h)
+
+
+def test_input_proc():
+    assert Input(data_name="test") == Input(data_name="test")
+    input_proc = Input(data_name="test")
+    sample = DictSample({"test": "a", "la_menuiserie": 4577}, sample_id=1)
+    assert input_proc(sample, (sample, )) == "a"
+    menuiserie_proc = Input(data_name="la_menuiserie")
+    assert menuiserie_proc(sample, (sample,)) == 4577
+
+
+def test_feat_proc():
+    feat_proc = Feat(feat_name="test_feat")
+    assert feat_proc(None, ("test", )) == "test"
+
+
+def test_proc_args():
+
+    class PassProc(SampleProcessor):
+        def process(self, *args) -> Any:
+            return args
+
+    assert PassProc()(None, (1, "a")) == (1, "a")
+    assert PassProc()(None, (1, "a", 2)) == (1, "a", 2)
+
+    class SumProc(SampleProcessor):
+        def process(self, a, b) -> Any:
+            return a + b
+
+    assert SumProc()(None, (1, 2)) == 3
+
+# TODO : unittest BatchProcessors

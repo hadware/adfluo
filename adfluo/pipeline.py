@@ -67,7 +67,7 @@ class ExtractionPipeline:
 
         # "regular" case: adding a node after the last one
         elif self.nb_outputs == 1:
-            old_tail = self.inputs[-1]
+            old_tail = self.outputs[0]
             old_tail.children = [new_node]
             new_node.parents = [old_tail]
 

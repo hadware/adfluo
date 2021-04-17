@@ -125,19 +125,20 @@ class SampleProcessor(BaseProcessor):
         # and print an error message
         try:
             self._current_sample = sample
-            processed_sample = self.process(*sample_data)
+            processed_sample_data = self.process(*sample_data)
         except Exception as e:
-            if not extraction_policy.skip_errors:
-                tb = sys.exc_info()[2]
-                raise type(e)(("In processor %s, on sample %s : "
-                               % (repr(self), sample.id)) +
-                              str(e)).with_traceback(tb)
-            else:
+            tb = sys.exc_info()[2]
+            err = type(e)(("In processor %s, on sample %s : "
+                           % (repr(self), sample.id)) +
+                          str(e)).with_traceback(tb)
+            if extraction_policy.skip_errors:
                 logger.warning("Got error in processor %s on sample %s : %s" %
                                (type(self).__name__, sample.id, str(e)))
-                return None, None
+                return None
+            else:
+                raise err
         else:
-            return sample, processed_sample
+            return processed_sample_data
 
 
 class FunctionWrapperMixin:
@@ -185,13 +186,13 @@ class BatchProcessor(SampleProcessor):
 
 class SampleInputProcessor(SampleProcessor):
     """Processor that pulls data from samples."""
-    input: str = param()
+    data_name: str = param()
 
-    def __init__(self, input: str):
-        super().__init__(input=input)
+    def __init__(self, data_name: str):
+        super().__init__(data_name=data_name)
 
     def process(self, sample: Sample) -> Any:
-        return sample[self.input]
+        return sample[self.data_name]
 
 
 Input = SampleInputProcessor
@@ -219,7 +220,7 @@ class SampleFeatureProcessor(SampleProcessor):
         super().__init__(feat_name=feat_name)
 
     def process(self, *args) -> Tuple:
-        return args
+        return args[0]
 
 
 Feat = SampleFeatureProcessor
