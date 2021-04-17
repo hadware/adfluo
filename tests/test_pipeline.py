@@ -35,7 +35,7 @@ def test_proc_merge():
         def process(self, *args) -> Any:
             pass
 
-    a, b, c = A(), B(), C()
+    a, b, c = A(), B()
     a_b = a + b
     assert isinstance(a_b, ExtractionPipeline)
     assert len(a_b.outputs) == len(a_b.inputs) == 2
