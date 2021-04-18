@@ -51,6 +51,11 @@ def test_fun_hash():
     assert F(a) != F(b)
 
 
+def test_lambda():
+    assert F(lambda x, y: list([x, y])) == F(lambda x, y: list([x, y]))
+    assert F(lambda x, y: list([x, y])) != F(lambda x, y: tuple([x, y]))
+
+
 def test_nb_args():
     def f(a, b):
         return a * b
@@ -72,18 +77,17 @@ def test_input_proc():
     assert Input(data_name="test") == Input(data_name="test")
     input_proc = Input(data_name="test")
     sample = DictSample({"test": "a", "la_menuiserie": 4577}, sample_id=1)
-    assert input_proc(sample, (sample, )) == "a"
+    assert input_proc(sample, (sample,)) == "a"
     menuiserie_proc = Input(data_name="la_menuiserie")
     assert menuiserie_proc(sample, (sample,)) == 4577
 
 
 def test_feat_proc():
     feat_proc = Feat(feat_name="test_feat")
-    assert feat_proc(None, ("test", )) == "test"
+    assert feat_proc(None, ("test",)) == "test"
 
 
 def test_proc_args():
-
     class PassProc(SampleProcessor):
         def process(self, *args) -> Any:
             return args
