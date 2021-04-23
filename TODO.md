@@ -11,7 +11,6 @@
 * replace asserts with real useful errors
 * add support for processors that return a Tuple, and add a specific split symbol
   to support splitting the tuple onto several processors ("tuple output unpacking")
-* add support for csv, df, pickle and dict extraction
 * add support for per feature/sample pickle file (for very large features) -> in a new method
 * add support for drop-on-save features (maybe find a better name)
 * add support for fully uncached extraction
@@ -29,7 +28,6 @@
 * possibility of calling a pipeline right away on a sample/dataset
 * documentation on documentation https://diataxis.fr/
 * Deactivate settattr (make object frozen) during process call 
-* check pipeline features at add_extraction time (extracted feature aren't wealready present in the curent DAG)
 * rework the error reporting system (when using skip errors or not)
 
 # Future implementation Notes
@@ -41,9 +39,6 @@
     these to their feature "leaves". This is **necessary** if we don't want 
     to have to run a dependency algorithm before running the extraction. In this
     case, dependencies between features are "naturally" expressed through the tree.
-  - in this case, features would then become a passthrough processor
-  - the cache mecanism could be tricky (the data could be stored twice: once in the
-    feature's DAG node, and once in the sample's feature storage
 * Regarding the CLI tool (feature ideas, at random):
   - for an extraction set, required inputs and the features it extracts
   - display DAG (to PNG or as a matplotlib window)
@@ -65,3 +60,26 @@ adfluo show module.my_extractor
 adfluo show module.my_extractor --dag -o dag.png
 adfluo show module.my_dataloader
 ```
+
+* Add a validator class that can validate inputs from the dataset:
+
+```python
+
+class MyValidator(BaseValidator):
+  
+  @validates("input_a")
+  def validate_a(self, data: TypeA):
+    # check that data is valid and return true if it is
+    ...
+  
+  @validates("input_b")
+  def validate_b(self, data: TypeB):
+    # same for b
+    ...
+  
+  ...
+
+```
+The validator class is then passed to the extractor at instanciation time.
+It then will decorate the __iter__ class from the datasetloader, which will 
+in turn decorate samples' __getitem__ class.

@@ -118,14 +118,9 @@ class CachedNode(BaseGraphNode, metaclass=ABCMeta):
         except KeyError:
             pass
 
-        try:
-            sample_data = self.compute_sample(sample)
-        except Exception:
-            self._failed_samples.add(sample.id)
-            raise BadSampleException(sample)
-        else:
-            self.to_cache(sample, sample_data)
-            return sample_data
+        sample_data = self.compute_sample(sample)
+        self.to_cache(sample, sample_data)
+        return sample_data
 
 
 class SampleProcessorNode(CachedNode):
@@ -140,8 +135,17 @@ class SampleProcessorNode(CachedNode):
         return hash(self.processor)
 
     def compute_sample(self, sample: Sample) -> Any:
-        parents_output = tuple(node[sample] for node in self.parents)
-        return self.processor(sample, parents_output)
+        try:
+            parents_output = tuple(node[sample] for node in self.parents)
+        except BadSampleException as err:
+            self._failed_samples.add(sample.id)
+            raise err
+
+        try:
+            return self.processor(sample, parents_output)
+        except Exception:
+            self._failed_samples.add(sample.id)
+            raise BadSampleException(sample)
 
 
 class BatchProcessorNode(CachedNode):
@@ -156,6 +160,8 @@ class BatchProcessorNode(CachedNode):
         return hash(self.processor)
 
     def compute_batch(self):
+        # TODO: error handling mechanism.
+        #  Idea: when the batch compute is wrong, set the whole batch as a bad sample
         for sample in self.iter_all_samples():
             parents_output = tuple(node[sample] for node in self.parents)
             self.batch_cache[sample.id] = parents_output
