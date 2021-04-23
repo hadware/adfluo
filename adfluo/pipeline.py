@@ -1,6 +1,7 @@
-from typing import List, Union
+from typing import List, Union, Dict, Any
 
-from .extraction_graph import SampleProcessorNode, BatchProcessorNode, FeatureNode, InputNode
+from .dataset import Sample, DictSample
+from .extraction_graph import SampleProcessorNode, BatchProcessorNode, FeatureNode, InputNode, FeatureName
 from .processors import BaseProcessor, FunctionWrapperProcessor, SampleProcessor, BatchProcessor, \
     Input, Feat
 
@@ -25,6 +26,7 @@ def wrap_processor(proc: BaseProcessor) -> ProcessorNode:
         return SampleProcessorNode(proc)
     else:
         raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(proc)))
+
 
 # TODO : add "connect" function and streamline some of this code
 class ExtractionPipeline:
@@ -90,14 +92,14 @@ class ExtractionPipeline:
         elif self.nb_outputs == 1 and pipeline.nb_inputs > 1:
             self.outputs[0].children = pipeline.inputs
             for i in pipeline.inputs:
-                i.parents = self.outputs[0]
+                i.parents = [self.outputs[0]]
 
         elif pipeline.nb_inputs == 1 and self.outputs > 1:
             # TODO: better error
             assert self.nb_outputs == pipeline.inputs[0].processor.nb_args
             pipeline.inputs[0].parents = self.outputs
             for o in self.outputs:
-                o.children = pipeline.inputs[0]
+                o.children = [pipeline.inputs[0]]
 
         self.outputs = pipeline.outputs
         self.all_nodes += pipeline.all_nodes
@@ -130,3 +132,14 @@ class ExtractionPipeline:
         else:
             raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
         return self
+
+    def __call__(self, sample: Union[Sample, Dict[str, Any]]) -> Dict[FeatureName, Any]:
+        if isinstance(sample, dict):
+            sample = DictSample(sample, 0)
+        output_dict: Dict[FeatureName, Any] = {}
+        # TODO: catch some errors (due to unsolved features/batch proc with no dataset)
+        #  and "contextualize" them
+        for output_node in self.outputs:
+            output_node: FeatureNode
+            output_dict[output_node.processor.feat_name] = output_node[sample]
+        return output_dict

@@ -3,7 +3,6 @@
 
 * check that samples all have unique ID's at extraction time (maybe done in the root node?)
 * check that feature names != input data names
-* change fail_on_error to skip_errors
 * add skip_errors logic in extraction graph 
   -> decide whether to define it at definition time or extraction time
   -> when an error happens in a processor and skip_error=True, set the sample as None (instead of the processed data)
@@ -12,7 +11,6 @@
 * replace asserts with real useful errors
 * add support for processors that return a Tuple, and add a specific split symbol
   to support splitting the tuple onto several processors ("tuple output unpacking")
-* add support for list of samples/ and samples-as-dicts for input datasets
 * add support for csv, df, pickle and dict extraction
 * add support for per feature/sample pickle file (for very large features) -> in a new method
 * add support for drop-on-save features (maybe find a better name)
@@ -28,11 +26,11 @@
 * ask about names for 
   - the extractor (ExtractionSet?)
   - DatasetLoader?
-* migrate processors to full dataclass ?
-* add `F` wrapper for functions (necessary: `(a >> b >> c)` won't work if `a, b, c` are functions)
 * possibility of calling a pipeline right away on a sample/dataset
 * documentation on documentation https://diataxis.fr/
 * Deactivate settattr (make object frozen) during process call 
+* check pipeline features at add_extraction time (extracted feature aren't wealready present in the curent DAG)
+* rework the error reporting system (when using skip errors or not)
 
 # Future implementation Notes
 

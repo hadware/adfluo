@@ -15,11 +15,15 @@ FeatureName = str
 SampleData = Any
 
 
-class BadSampleException(Exception):
+class BadSampleException(RuntimeError):
 
     def __init__(self, sample: Sample, *args):
         self.sample = sample
         super().__init__(*args)
+
+
+class UnsolvedFeatureDependencyError(RuntimeError):
+    pass
 
 
 class BaseGraphNode(metaclass=ABCMeta):
@@ -47,6 +51,8 @@ class BaseGraphNode(metaclass=ABCMeta):
         self._depth = value
 
     def iter_all_samples(self) -> Iterable[Sample]:
+        if not self.parents:
+            raise RuntimeError("Cannot retrieve all samples if no parent is set")
         return self.parents[0].iter_all_samples()
 
     def ancestor_hash(self) -> float:
@@ -110,14 +116,16 @@ class CachedNode(BaseGraphNode, metaclass=ABCMeta):
         try:
             return self.from_cache(sample)
         except KeyError:
-            try:
-                sample_data = self.compute_sample(sample)
-            except Exception:
-                self._failed_samples.add(sample.id)
-                raise BadSampleException(sample)
-            else:
-                self.to_cache(sample, sample_data)
-                return sample_data
+            pass
+
+        try:
+            sample_data = self.compute_sample(sample)
+        except Exception:
+            self._failed_samples.add(sample.id)
+            raise BadSampleException(sample)
+        else:
+            self.to_cache(sample, sample_data)
+            return sample_data
 
 
 class SampleProcessorNode(CachedNode):
@@ -157,14 +165,13 @@ class BatchProcessorNode(CachedNode):
             all_samples_data = list(self.batch_cache.values())
 
         # TODO: check that
-        self.processor.full_dataset_process(list(self.batch_cache.keys()),
-                                            all_samples_data)
+        self.processor.full_dataset_process(all_samples_data)
         self.has_computed_batch = True
 
     def compute_sample(self, sample: Sample) -> Any:
         if not self.has_computed_batch:
             self.compute_batch()
-        parents_output = self.batch_cache.pop(sample)
+        parents_output = self.batch_cache.pop(sample.id)
         return self.processor(sample, parents_output)
 
 
@@ -173,6 +180,13 @@ class FeatureNode(SampleProcessorNode):
     which to pull samples for a specific feature"""
 
     processor: SampleFeatureProcessor
+
+    def compute_sample(self, sample: Sample) -> Any:
+        if not self.parents:
+            raise RuntimeError(f"No parents for feature node for feature "
+                               f"{self.processor.feat_name}. "
+                               f"Node has no parents.")
+        return super().compute_sample(sample)
 
     def ancestor_hash(self) -> float:
         # TODO: document
@@ -233,6 +247,7 @@ class ExtractionDAG:
         nodes_stack: Deque[SampleProcessorNode] = deque(feature_nodes)
         # registering feature nodes (and checking that they're not already present)
         for feat_node in feature_nodes:
+            # TODO : better error
             assert feat_node.processor.feat_name not in self.feature_nodes
             self.feature_nodes[feat_node.processor.feat_name] = feat_node
 
@@ -293,7 +308,7 @@ class ExtractionDAG:
             root_children.remove(node)
             self.nodes.remove(node)
 
-    def compute_feature_order(self) :
+    def compute_feature_order(self):
         # sorting feature node by increasing depth
         sorted_feature_nodes = sorted(self.feature_nodes.values(),
                                       key=lambda node: node.depth)

@@ -191,8 +191,8 @@ class SampleInputProcessor(SampleProcessor):
     def __init__(self, data_name: str):
         super().__init__(data_name=data_name)
 
-    def process(self, sample: Sample) -> Any:
-        return sample[self.data_name]
+    def process(self, *args) -> Any:
+        return self.current_sample[self.data_name]
 
 
 Input = SampleInputProcessor

@@ -152,4 +152,54 @@ def test_pipeline_io_checking():
     pl_bad_feat = Input("test_input") >> A() >> A() >> (A() + Feat("test_feat"))
     with pytest.raises(AssertionError):
         pl_bad_feat.check()
-# TODO : check (a >> (b + c) + d ) >> e
+
+
+def test_advanced_composite_pipeline():
+    def f(a):
+        pass
+
+    def f_3(a, b, c):
+        pass
+
+    pipeline = Input("test_input") >> ((F(f) >> (F(f) + F(f))) + F(f)) >> F(f_3) >> Feat("test_feat")
+    pipeline.check()
+
+
+def test_pipeline_extraction_no_deps():
+    def add_one(n: int) -> int:
+        return n + 1
+
+    def times_two(n: int) -> int:
+        return n * 2
+
+    sample = {"test_number": 0}
+    pl = Input("test_number") >> F(add_one) >> F(add_one) >> F(times_two) >> Feat("test_feat")
+    assert pl(sample)["test_feat"] == (1 + 1) * 2
+
+
+def test_pipeline_merge():
+    def adder(a: int, b: int):
+        return a + b
+
+    def times_two(n: int):
+        return n * 2
+
+    def add_one(n: int) -> int:
+        return n + 1
+
+    sample = {"a": 1, "b": 0}
+
+    pl = (Input("a") + (Input("b") >> F(add_one))) >> F(adder) >> F(times_two) >> Feat("test_feat")
+    assert pl(sample)["test_feat"] == 4
+
+
+def test_pipeline_multiple_features():
+    def add_one(n: int) -> int:
+        return n + 1
+
+    def times_two(n: int) -> int:
+        return n * 2
+
+    sample = {"n": 0}
+    pl = Input("n") >> F(add_one) >> (F(add_one) >> F(times_two) >> Feat("times_two")) + Feat("one")
+    assert pl(sample) == {"times_two": 4, "one": 1}
