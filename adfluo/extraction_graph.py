@@ -207,6 +207,10 @@ class InputNode(SampleProcessorNode):
     # TODO: doc
     processor: SampleInputProcessor
 
+    def __init__(self, processor: SampleProcessor, is_feat: bool = False):
+        super().__init__(processor)
+        self.is_feat = is_feat
+
     @property
     def data_name(self) -> str:
         return self.processor.data_name
@@ -287,7 +291,7 @@ class ExtractionDAG:
             node = nodes_stack.pop()
             # TODO: document this condition
             if isinstance(node, FeatureNode) and not node.parents:
-                node = InputNode(Input(node.feature_name))
+                node = InputNode(Input(node.feature_name), is_feat=True)
 
             self.nodes.append(node)
             # an input node has to be directly connected to the root node
@@ -326,9 +330,9 @@ class ExtractionDAG:
             if feature_node is None:
                 # It's a feature, yet no feature was found in the graph...
                 # this a problem
-                if isinstance(node, FeatureNode):
-                    raise ValueError(f"No matching feature "
-                                     f"in graph for input node {feature_node}")
+                if node.is_feat:
+                    raise ValueError(f"No matching feature in graph for"
+                                     f" input name '{node.data_name}'")
                 else:
                     continue
 
