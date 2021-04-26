@@ -154,6 +154,15 @@ def test_pipeline_io_checking():
         pl_bad_feat.check()
 
 
+def test_pipeline_feat_input():
+    def b(arg_a, arg_b): pass
+
+    pl = (Input("test_input") + Feat("feat_a")) >> F(b) >> Feat("feat_b")
+    assert len(pl.inputs) == 2
+    assert pl.inputs[0].data_name == "test_input"
+    assert pl.inputs[1].feature_name == "feat_a"
+
+
 def test_advanced_composite_pipeline():
     def f(a):
         pass
@@ -165,7 +174,7 @@ def test_advanced_composite_pipeline():
     pipeline.check()
 
 
-def test_pipeline_extraction_no_deps():
+def test_pipeline_extraction_linear():
     def add_one(n: int) -> int:
         return n + 1
 

@@ -5,7 +5,7 @@ from typing import List, Dict, Any, Optional, Iterable, Deque, Tuple, Set, TYPE_
 from tqdm import tqdm
 
 from .dataset import DatasetLoader, Sample
-from .processors import BatchProcessor, SampleProcessor, SampleInputProcessor, SampleFeatureProcessor
+from .processors import BatchProcessor, SampleProcessor, SampleInputProcessor, SampleFeatureProcessor, Input
 
 if TYPE_CHECKING:
     from .pipeline import ExtractionPipeline
@@ -55,7 +55,7 @@ class BaseGraphNode(metaclass=ABCMeta):
             raise RuntimeError("Cannot retrieve all samples if no parent is set")
         return self.parents[0].iter_all_samples()
 
-    def ancestor_hash(self) -> float:
+    def ancestor_hash(self) -> int:
         parents_hashes = tuple(parent.ancestor_hash() for parent in self.parents)
         return hash((self, *parents_hashes))
 
@@ -132,7 +132,7 @@ class SampleProcessorNode(CachedNode):
         self.processor = processor
 
     def __hash__(self):
-        return hash(self.processor)
+        return hash((self.__class__, hash(self.processor)))
 
     def compute_sample(self, sample: Sample) -> Any:
         try:
@@ -157,7 +157,7 @@ class BatchProcessorNode(CachedNode):
         self.batch_cache: OrderedDict[SampleID, Any] = OrderedDict()
 
     def __hash__(self):
-        return hash(self.processor)
+        return hash((self.__class__, hash(self.processor)))
 
     def compute_batch(self):
         # TODO: error handling mechanism.
@@ -187,6 +187,10 @@ class FeatureNode(SampleProcessorNode):
 
     processor: SampleFeatureProcessor
 
+    @property
+    def feature_name(self) -> str:
+        return self.processor.feat_name
+
     def compute_sample(self, sample: Sample) -> Any:
         if not self.parents:
             raise RuntimeError(f"No parents for feature node for feature "
@@ -194,7 +198,7 @@ class FeatureNode(SampleProcessorNode):
                                f"Node has no parents.")
         return super().compute_sample(sample)
 
-    def ancestor_hash(self) -> float:
+    def ancestor_hash(self) -> int:
         # TODO: document
         return hash(self)
 
@@ -202,6 +206,13 @@ class FeatureNode(SampleProcessorNode):
 class InputNode(SampleProcessorNode):
     # TODO: doc
     processor: SampleInputProcessor
+
+    @property
+    def data_name(self) -> str:
+        return self.processor.data_name
+
+    def ancestor_hash(self) -> int:
+        return hash(self)
 
 
 class RootNode(BaseGraphNode):
@@ -229,7 +240,7 @@ class RootNode(BaseGraphNode):
 class ExtractionDAG:
 
     def __init__(self):
-        # stores all the processing (intput, feature and processor) nodes from
+        # stores all the processing (input, feature and processor) nodes from
         # the dag
         self.nodes: List[BaseGraphNode] = list()
         # stores only the feature nodes
@@ -240,6 +251,14 @@ class ExtractionDAG:
         self._needs_dependency_solving = False
         self._features_order: Optional[List[FeatureName]] = None
 
+    @property
+    def features(self) -> Set[str]:
+        return set(self.feature_nodes.keys())
+
+    @property
+    def inputs(self) -> Set[str]:
+        return set(input_node.data_name for input_node in self.root_node.children)
+
     def genealogical_search(self, searched_node: BaseGraphNode) -> Optional[BaseGraphNode]:
         """Search the DAG for a node that is the same node and has the same
         ancestry as the searched node. If nothing is found, returns None"""
@@ -249,7 +268,7 @@ class ExtractionDAG:
         return None
 
     def add_pipeline(self, pipeline: 'ExtractionPipeline'):
-        feature_nodes = pipeline.outputs
+        feature_nodes: List[FeatureNode] = pipeline.outputs
         nodes_stack: Deque[SampleProcessorNode] = deque(feature_nodes)
         # registering feature nodes (and checking that they're not already present)
         for feat_node in feature_nodes:
@@ -266,12 +285,20 @@ class ExtractionDAG:
         # - else, add parent nodes to stack
         while nodes_stack:
             node = nodes_stack.pop()
-            # an input node cannot be added to the
-            if isinstance(node.processor, SampleInputProcessor):
-                node.parents = [self.root_node]
-                continue
+            # TODO: document this condition
+            if isinstance(node, FeatureNode) and not node.parents:
+                node = InputNode(Input(node.feature_name))
 
             self.nodes.append(node)
+            # an input node has to be directly connected to the root node
+            # NOTE: if an input node is put on the stack, it means that this
+            # particular input node wasn't already present as a rootnode's child
+            if isinstance(node, InputNode):
+                assert node.data_name not in self.inputs
+                node.parents = [self.root_node]
+                self.root_node.children.append(node)
+                continue
+
             for node_parent in list(node.parents):
                 dag_node = self.genealogical_search(node_parent)
                 if dag_node is not None:
@@ -287,13 +314,12 @@ class ExtractionDAG:
     def solve_dependencies(self):
         """Connects inputs that are actually features to the corresponding
         `FeatureNode` and disconnects them from the root node."""
+        if not self._needs_dependency_solving:
+            return
+
         root_children = self.root_node.children
         for node in list(root_children):
-            if isinstance(node, InputNode):
-                feature_name = node.processor.data_name
-            else:  # it's a feature node
-                feature_name = node.processor.feat_name
-
+            feature_name = node.processor.data_name
             feature_node = self.feature_nodes.get(feature_name)
 
             # if this input node isn't a feature, skip
@@ -313,6 +339,8 @@ class ExtractionDAG:
             # removing the input node from the root node's children
             root_children.remove(node)
             self.nodes.remove(node)
+
+        self._needs_dependency_solving = False
 
     def compute_feature_order(self):
         # sorting feature node by increasing depth

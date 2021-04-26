@@ -2,6 +2,17 @@ from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
 
+# Used to import from string:
+def import_class(class_path: str):
+    # TODO: better error
+    assert len(class_path.split(".")) > 1
+    *module_path, klass_name = class_path.split(".")
+    module_path = ".".join(module_path)
+    mod = __import__(module_path, fromlist=[klass_name])
+    klass = getattr(mod, klass_name)
+    return klass
+
+
 def extract(args: Namespace):
     pass
 
@@ -48,7 +59,6 @@ if __name__ == '__main__':
                                 action="store_true",
                                 help="Verbose mode")
 
-
     parser_show = subparsers.add_parser("show")
     parser_show.set_defaults(func=show)
     parser_show.add_argument("extractor_or_dataloader", type=str,
@@ -59,4 +69,3 @@ if __name__ == '__main__':
                                 help="If we're dealing ")
 
     argparser.parse_args()
-

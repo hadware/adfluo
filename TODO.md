@@ -17,8 +17,6 @@
 * for pickle (and maybe hdf5), add support for "direct store" feature (not stored in memory once computed,  
   directly put on disk in the resulting pickle)
 * add dataset-level pipelines to compute feature aggregates
-* for processor params, add a dataclass-aware system that uses the dataclass
-  attributes as parameters
 * idea for an eventual CLI tool: specify the object to load from a script in the current python namespace.
 * use networkX and multipartite_graph to plot the processing DAG
 * use extras_requires( `pip install adfluo[plot]`) to install extra plotting dependencies
@@ -29,6 +27,8 @@
 * documentation on documentation https://diataxis.fr/
 * Deactivate settattr (make object frozen) during process call 
 * rework the error reporting system (when using skip errors or not)
+* maybe use typevars with param() to prevent having to annotate the parameter
+* make sure that `add_extraction(Input("test"))` works to get a feature directly from an input
 
 # Future implementation Notes
 
@@ -80,6 +80,8 @@ class MyValidator(BaseValidator):
   ...
 
 ```
-The validator class is then passed to the extractor at instanciation time.
+- The validator class is then passed to the extractor at instanciation time.
 It then will decorate the __iter__ class from the datasetloader, which will 
 in turn decorate samples' __getitem__ class.
+- OR: Validator nodes are inserted in the graph before/after/in the input nodes
+- OR: Validator callbacks are passed to the corresponding input processors
