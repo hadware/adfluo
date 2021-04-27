@@ -89,10 +89,10 @@ class CachedNode(BaseGraphNode, metaclass=ABCMeta):
         pass
 
     def from_cache(self, sample: Sample):
-        if sample in self._failed_samples:
+        if sample.id in self._failed_samples:
             raise BadSampleException(sample)
 
-        if sample in self._samples_cache:
+        if sample.id in self._samples_cache:
             # retrieving the sample and incrementing the cache hits counter
             cached_output = self._samples_cache[sample.id]
             self._samples_cache_hits[sample.id] += 1
@@ -113,6 +113,10 @@ class CachedNode(BaseGraphNode, metaclass=ABCMeta):
         self._samples_cache_hits = dict()
 
     def __getitem__(self, sample: Sample) -> Sample:
+        # if node has no children or one children, short the cache mechanism
+        if len(self.children) <= 1:
+            return self.compute_sample(sample)
+
         try:
             return self.from_cache(sample)
         except KeyError:

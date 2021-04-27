@@ -118,7 +118,15 @@ def test_dependency_solving():
 
 
 def test_unsolvable_feature():
-    pass
+    def a(arg): pass
+
+    def b(arg): pass
+
+    dag = ExtractionDAG()
+    dag.add_pipeline(Input("test_input") >> F(a) >> Feat("feat_a"))
+    dag.add_pipeline(Feat("feat_c") >> F(b) >> Feat("feat_b"))
+    with pytest.raises(ValueError):
+        dag.solve_dependencies()
 
 
 def test_feature_already_in_graph():
@@ -147,6 +155,35 @@ def test_caching_simple():
     assert cached_node._samples_cache["0"] == 2
     assert cached_node._samples_cache_hits["0"] == 1
 
+    out = dag.feature_nodes["feat_a"][sample]
+    assert out == 2
+    assert len(cached_node._samples_cache) == 0
+
+
 
 def test_caching_advanced():
-    pass
+    def add_one(n: int):
+        return n + 1
+
+    dag = ExtractionDAG()
+    dag.add_pipeline(Input("test_input") >> F(add_one) >> Feat("feat_a"))
+    dag.add_pipeline(Input("test_input") >> F(add_one) >> Feat("feat_b"))
+    dag.add_pipeline(Input("test_input") >> F(add_one) >> F(add_one) >> Feat("feat_c"))
+    dag.add_pipeline(Input("test_input") >> F(add_one) >> F(add_one) >> Feat("feat_d"))
+    sample_a = DictSample({"test_input": 1}, 0)
+    sample_b = DictSample({"test_input": 2}, 1)
+    assert dag.feature_nodes["feat_a"].parents[0] == dag.feature_nodes["feat_b"].parents[0]
+    assert dag.feature_nodes["feat_c"].parents[0] == dag.feature_nodes["feat_d"].parents[0]
+    cached_node: SampleProcessorNode = dag.feature_nodes["feat_a"].parents[0]
+    assert len(cached_node.children) == 3
+    out = dag.feature_nodes["feat_a"][sample_a]
+    assert out == 2
+    out = dag.feature_nodes["feat_a"][sample_b]
+    assert out == 3
+    assert len(cached_node._samples_cache) == 2
+    assert cached_node._samples_cache["0"] == 2
+    assert cached_node._samples_cache["1"] == 3
+    assert cached_node._samples_cache_hits["0"] == 1
+
+    out = dag.feature_nodes["feat_b"][sample_a]
+    assert cached_node._samples_cache_hits["0"] == 2
