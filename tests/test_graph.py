@@ -160,7 +160,6 @@ def test_caching_simple():
     assert len(cached_node._samples_cache) == 0
 
 
-
 def test_caching_advanced():
     def add_one(n: int):
         return n + 1
@@ -187,3 +186,6 @@ def test_caching_advanced():
 
     out = dag.feature_nodes["feat_b"][sample_a]
     assert cached_node._samples_cache_hits["0"] == 2
+
+# TODO: make a cache test where the sample processors are checking that they shouldn't be called more
+#  than once

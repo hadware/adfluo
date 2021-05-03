@@ -29,6 +29,8 @@
 * rework the error reporting system (when using skip errors or not)
 * maybe use typevars with param() to prevent having to annotate the parameter
 * make sure that `add_extraction(Input("test"))` works to get a feature directly from an input
+* add optional validation logic, either through a `validates` method in sampleprocessor 
+  or via a dedicated `SampleValidator` processor.
 
 # Future implementation Notes
 

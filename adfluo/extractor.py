@@ -2,7 +2,7 @@ from csv import Dialect
 from pathlib import Path
 from typing import Union, Optional, TextIO, BinaryIO, Literal, TYPE_CHECKING, List, Dict, Set
 
-from .extraction_graph import ExtractionDAG, FeatureName, FeatureNode
+from .extraction_graph import ExtractionDAG, FeatureName, FeatureNode, DuplicateSampleError
 from .dataset import DatasetLoader, Sample, ListLoader
 from .pipeline import ExtractionPipeline
 from .storage import BaseStorage, StorageIndexing, CSVStorage, PickleStorage, DataFrameStorage
@@ -31,7 +31,7 @@ class Extractor:
             drop_on_save: bool = False):
 
         if not isinstance(pipeline, ExtractionPipeline):
-            raise ValueError(f"The pipeline has to be a {ExtractionPipeline} "
+            raise ValueError(f"The pipeline has to be an {ExtractionPipeline} "
                              f"instance")
         pipeline.check()
         self.extraction_DAG.add_pipeline(pipeline)
@@ -66,10 +66,17 @@ class Extractor:
 
                 storage.store_feat(feature_name, output_data)
         else:
+            sample_ids = set()
             for sample in dataset:
+                if sample.id in sample_ids:
+                    raise DuplicateSampleError(sample.id)
+                sample_ids.add(sample.id)
+
                 logger.info(f"Extracting features for sample {sample.id}")
                 output_data = self.extraction_DAG.extract_sample_wise(sample,
                                                                       self.show_progress)
+
+                # dropping "dropped on save" features
                 for feat_name in self.dropped_features:
                     if feat_name in output_data:
                         del output_data[feat_name]

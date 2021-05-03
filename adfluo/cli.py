@@ -18,7 +18,7 @@ def extract(args: Namespace):
 
 
 def show(args: Namespace):
-    pass
+    pass # TODO: show duplicate id's in the dataset report
 
 
 if __name__ == '__main__':
@@ -51,7 +51,8 @@ if __name__ == '__main__':
                                 help="Output file path")
     parser_extract.add_argument("--test_samples",
                                 action="store_true",
-                                help="Don't show progress bars during the extraction")
+                                help="Just test that samples all can all provide "
+                                     "the required input data")
     parser_extract.add_argument("--hide_progress",
                                 action="store_true",
                                 help="Don't show progress bars during the extraction")

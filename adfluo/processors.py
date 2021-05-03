@@ -7,7 +7,9 @@ from typing import Any, List, Tuple, Callable, TYPE_CHECKING, Hashable, Optional
 from sortedcontainers import SortedDict
 
 from .dataset import Sample
+from .exceptions import InvalidInputData
 from .utils import logger, extraction_policy
+from .validator import ValidatorFunction
 
 if TYPE_CHECKING:
     from .pipeline import PipelineElement
@@ -190,9 +192,15 @@ class SampleInputProcessor(SampleProcessor):
 
     def __init__(self, data_name: str):
         super().__init__(data_name=data_name)
+        self.validator_fn: Optional[ValidatorFunction] = None
 
     def process(self, *args) -> Any:
-        return self.current_sample[self.data_name]
+        data = self.current_sample[self.data_name]
+
+        if self.validator_fn is not None:
+            if not self.validator_fn(data):
+                raise InvalidInputData(self.data_name, self.current_sample.id)
+        return data
 
 
 Input = SampleInputProcessor

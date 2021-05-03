@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict, deque
-from typing import List, Dict, Any, Optional, Iterable, Deque, Tuple, Set, TYPE_CHECKING
+from typing import List, Dict, Any, Optional, Iterable, Deque, Set, TYPE_CHECKING
 
 from tqdm import tqdm
 
@@ -13,17 +13,6 @@ if TYPE_CHECKING:
 SampleID = str
 FeatureName = str
 SampleData = Any
-
-
-class BadSampleException(RuntimeError):
-
-    def __init__(self, sample: Sample, *args):
-        self.sample = sample
-        super().__init__(*args)
-
-
-class UnsolvedFeatureDependencyError(RuntimeError):
-    pass
 
 
 class BaseGraphNode(metaclass=ABCMeta):
@@ -372,7 +361,12 @@ class ExtractionDAG:
         else:
             it = self._loader
 
+        sample_ids = set()
         for sample in it:
+            if sample.id in sample_ids:
+                raise DuplicateSampleError(sample.id)
+            sample_ids.add(sample.id)
+
             try:
                 feat_dict[sample.id] = feat_node[sample]
             except BadSampleException:

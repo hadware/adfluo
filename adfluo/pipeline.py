@@ -1,18 +1,13 @@
 from typing import List, Union, Dict, Any
 
 from .dataset import Sample, DictSample
+from .exceptions import PipelineBuildError, PIPELINE_TYPE_ERROR
 from .extraction_graph import SampleProcessorNode, BatchProcessorNode, FeatureNode, InputNode, FeatureName
-from .processors import BaseProcessor, FunctionWrapperProcessor, SampleProcessor, BatchProcessor, \
+from .processors import BaseProcessor, SampleProcessor, BatchProcessor, \
     Input, Feat
 
 PipelineElement = Union['ExtractionPipeline', BaseProcessor]
 ProcessorNode = Union[SampleProcessorNode, BatchProcessorNode]
-
-PIPELINE_TYPE_ERROR = "Invalid object in pipeline of type {obj_type}"
-
-
-class PipelineBuildError(Exception):
-    pass
 
 
 def wrap_processor(proc: BaseProcessor) -> ProcessorNode:

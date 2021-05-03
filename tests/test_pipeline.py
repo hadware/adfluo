@@ -187,8 +187,10 @@ def test_pipeline_extraction_linear():
 
 
 def test_pipeline_merge():
-    def adder(a: int, b: int):
-        return a + b
+    class Adder(SampleProcessor):
+
+        def process(self, a: int, b: int):
+            return a + b
 
     def times_two(n: int):
         return n * 2
@@ -198,7 +200,7 @@ def test_pipeline_merge():
 
     sample = {"a": 1, "b": 0}
 
-    pl = (Input("a") + (Input("b") >> F(add_one))) >> F(adder) >> F(times_two) >> Feat("test_feat")
+    pl = (Input("a") + (Input("b") >> F(add_one))) >> Adder() >> F(times_two) >> Feat("test_feat")
     assert pl(sample)["test_feat"] == 4
 
 
