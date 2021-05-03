@@ -32,7 +32,7 @@ class BaseStorage:
         if self.indexing == "feature":
             out_data = defaultdict(dict)
             for sample_id, feat_dict in self._data.items():
-                for feat, value in feat_dict:
+                for feat, value in feat_dict.items():
                     out_data[feat][sample_id] = value
         else:
             out_data = self._data
@@ -47,19 +47,16 @@ class CSVStorage(BaseStorage):
                  dialect: Optional[Dialect] = None):
         super().__init__(indexing)
         self.file = output_file
-        if dialect is None:
-            self.dialect = Dialect()
-        else:
-            self.dialect = dialect
+        self.dialect = dialect
 
     def write(self):
         data = self.get_value()
         if self.indexing == "sample":
             index_column = "sample_id"
-            fields = [index_column] + list(self._features)
+            fields = [index_column] + sorted(list(self._features))
         else:
             index_column = "feature"
-            fields = [index_column] + list(self._data.keys())
+            fields = [index_column] + sorted(list(self._data.keys()))
         writer = csv.DictWriter(self.file, fieldnames=fields, dialect=self.dialect)
         writer.writeheader()
         for key, data in data.items():

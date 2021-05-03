@@ -1,0 +1,17 @@
+{
+  "0": {
+    "feat_a": 0,
+    "feat_b": 0,
+    "feat_c": 0
+  },
+  "1": {
+    "feat_a": 1,
+    "feat_b": 1,
+    "feat_c": 3
+  },
+  "2": {
+    "feat_a": 2,
+    "feat_b": 4,
+    "feat_c": 6
+  }
+}
