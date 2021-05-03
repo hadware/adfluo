@@ -31,7 +31,8 @@ setup(
     install_requires=[
         "tqdm",
         "dataclasses; python_version <'3.7'",
-        "sortedcontainers>=2.3.0"
+        "sortedcontainers>=2.3.0",
+        "typing-extensions"
     ],
     extras_requires={
         "display": [
