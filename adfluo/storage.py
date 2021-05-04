@@ -3,7 +3,8 @@ import json
 import pickle
 from collections import defaultdict
 from csv import Dialect
-from typing import Optional, Union, TextIO, Dict, Any, BinaryIO, Literal, Set
+from typing import Optional, Union, TextIO, Dict, Any, BinaryIO, Set
+from typing_extensions import Literal
 
 from .dataset import Sample
 
