@@ -34,6 +34,7 @@ def test_processor_default_params():
 
     assert TestProc()._params == SortedDict({'a': 1, 'b': 'c'})
     assert repr(TestProc()) == "<TestProc(a=1,b='c')>"
+    assert TestProc(a=2)._params == SortedDict({'a': 2, 'b': 'c'})
 
 
 def test_fun_hash():

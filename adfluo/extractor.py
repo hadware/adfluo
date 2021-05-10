@@ -2,7 +2,7 @@ from csv import Dialect
 from pathlib import Path
 from typing import Union, Optional, TextIO, BinaryIO, Literal, TYPE_CHECKING, List, Dict, Set
 
-from .extraction_graph import ExtractionDAG, FeatureName, FeatureNode, DuplicateSampleError
+from .extraction_graph import ExtractionDAG, FeatureName, FeatureNode
 from .dataset import DatasetLoader, Sample, ListLoader
 from .pipeline import ExtractionPipeline
 from .storage import BaseStorage, StorageIndexing, CSVStorage, PickleStorage, DataFrameStorage
@@ -39,7 +39,7 @@ class Extractor:
         if drop_on_save:
             for feat_node in pipeline.outputs:
                 feat_node: FeatureNode
-                self.dropped_features.add(feat_node.processor.feature)
+                self.dropped_features.add(feat_node.processor.feat_name)
 
     def add_aggregation(self,
                         pipeline,
