@@ -31,6 +31,7 @@
 * make sure that `add_extraction(Input("test"))` works to get a feature directly from an input
 * add optional validation logic, either through a `validates` method in sampleprocessor 
   or via a dedicated `SampleValidator` processor.
+* check that id method of samples is a property
 
 # Future implementation Notes
 

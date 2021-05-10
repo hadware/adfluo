@@ -3,7 +3,9 @@ import json
 import pickle
 from collections import defaultdict
 from csv import Dialect
+from pathlib import Path
 from typing import Optional, Union, TextIO, Dict, Any, BinaryIO, Set
+
 from typing_extensions import Literal
 
 from .dataset import Sample
@@ -80,15 +82,36 @@ class PickleStorage(BaseStorage):
 
 class PickleStoragePerFile(BaseStorage):
     # TODO
+    #  - add argument "stream" that forces it to dump to file after each storingl
 
     def __init__(self,
                  indexing: StorageIndexing,
-                 output_file: BinaryIO):
+                 output_folder: Path,
+                 streaming: bool):
         super().__init__(indexing)
-        self.file = output_file
+        self.folder = output_folder
+        self.streaming = streaming
+
+    def store_sample(self, sample: Sample, data: Dict[Feature, Any]):
+        super().store_sample(sample, data)
+        if self.indexing == "sample" and self.streaming:
+            self.flush()
+
+    def store_feat(self, feature: str, data: Dict[SampleID, Any]):
+        super().store_feat(feature, data)
+        if self.indexing == "feature" and self.streaming:
+            self.flush()
+
+    def flush(self):
+        # writing to disk emptying storage cache
+        self.write()
+        self._data = defaultdict(dict)
 
     def write(self):
-        pickle.dump(self.get_value(), self.file)
+        data = self.get_value()
+        for key, data in data.items():
+            with open(self.folder / Path(f"{key}.pckl"), "wb") as pkfile:
+                pickle.dump(data, pkfile)
 
 
 class JSONStorage(BaseStorage):

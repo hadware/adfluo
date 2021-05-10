@@ -1,4 +1,7 @@
-from adfluo import SampleProcessor, param, Input, Feat, F
+import pytest
+
+from adfluo import SampleProcessor, param, Input, Feat, F, Sample
+from adfluo.exceptions import DuplicateSampleError
 from adfluo.extractor import Extractor
 
 dataset = [{
@@ -78,3 +81,23 @@ def test_extraction_order():
 
 def test_storage_indexing():
     pass
+
+
+def test_duplicate_sample():
+    class BadDuplicateSample(Sample):
+
+        @property
+        def id(self):
+            return "4577"
+
+        def __getitem__(self, item):
+            if item == "data_a":
+                return 1
+            elif item =="data_b":
+                return "a"
+
+    dataset = [BadDuplicateSample() for i in range(3)]
+    extractor = Extractor(show_progress=False)
+    create_dag(extractor)
+    with pytest.raises(DuplicateSampleError):
+        extractor.extract_to_dict(dataset, extraction_order="sample")

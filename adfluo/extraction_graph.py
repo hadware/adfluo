@@ -5,7 +5,9 @@ from typing import List, Dict, Any, Optional, Iterable, Deque, Set, TYPE_CHECKIN
 from tqdm import tqdm
 
 from .dataset import DatasetLoader, Sample
+from .exceptions import DuplicateSampleError, BadSampleException
 from .processors import BatchProcessor, SampleProcessor, SampleInputProcessor, SampleFeatureProcessor, Input
+from .utils import extraction_policy
 
 if TYPE_CHECKING:
     from .pipeline import ExtractionPipeline
@@ -102,8 +104,9 @@ class CachedNode(BaseGraphNode, metaclass=ABCMeta):
         self._samples_cache_hits = dict()
 
     def __getitem__(self, sample: Sample) -> Sample:
-        # if node has no children or one children, short the cache mechanism
-        if len(self.children) <= 1:
+        # if node has no children or one children, or if cache is disabled,
+        # bypass the cache mechanism
+        if len(self.children) <= 1 or extraction_policy.no_cache:
             return self.compute_sample(sample)
 
         try:

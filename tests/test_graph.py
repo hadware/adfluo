@@ -4,11 +4,6 @@ from adfluo.dataset import DictSample
 from adfluo.extraction_graph import ExtractionDAG, SampleProcessorNode
 from adfluo.processors import Input, F, Feat
 
-
-def test_ancestor_hash():
-    pass
-
-
 def test_two_pipeline_parallel():
     def a(arg): pass
 
@@ -189,3 +184,8 @@ def test_caching_advanced():
 
 # TODO: make a cache test where the sample processors are checking that they shouldn't be called more
 #  than once
+
+def test_error_management():
+    # todo : check that skip_error raises a badsample
+    # todo : check that skip_error=false raises the right exception
+    pass

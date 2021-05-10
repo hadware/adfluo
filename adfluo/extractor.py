@@ -1,12 +1,15 @@
 from csv import Dialect
 from pathlib import Path
 from typing import Union, Optional, TextIO, BinaryIO, TYPE_CHECKING, List, Dict, Set
+
 from typing_extensions import Literal
 
-from .extraction_graph import ExtractionDAG, FeatureName, FeatureNode
 from .dataset import DatasetLoader, Sample, ListLoader
+from .exceptions import DuplicateSampleError
+from .extraction_graph import ExtractionDAG, FeatureName, FeatureNode
 from .pipeline import ExtractionPipeline
-from .storage import BaseStorage, StorageIndexing, CSVStorage, PickleStorage, DataFrameStorage
+from .storage import BaseStorage, StorageIndexing, CSVStorage, PickleStorage, DataFrameStorage, JSONStorage, \
+    PickleStoragePerFile
 from .utils import extraction_policy, logger
 
 ExtractionOrder = Literal["feature", "sample"]
@@ -111,6 +114,7 @@ class Extractor:
 
         storage = CSVStorage(storage_indexing, csv_file, csv_dialect)
         self._extract(dataset, extraction_order, storage)
+        storage.write()
 
         if isinstance(output_file, (Path, str)):
             csv_file.close()
@@ -130,17 +134,49 @@ class Extractor:
 
         storage = PickleStorage(storage_indexing, pickle_file)
         self._extract(dataset, extraction_order, storage)
+        storage.write()
 
         if isinstance(output_file, (Path, str)):
             pickle_file.close()
 
+    def extract_to_json(self,
+                        dataset: Dataset,
+                        output_file: Union[str, Path, TextIO],
+                        extraction_order: ExtractionOrder = "feature",
+                        storage_indexing: StorageIndexing = "sample",
+                        no_caching: bool = False):
+        extraction_policy.skip_errors = self.skip_errors
+        extraction_policy.no_cache = no_caching
+        if isinstance(output_file, (Path, str)):
+            json_file = open(output_file, "w")
+        else:
+            json_file = output_file
+
+        storage = JSONStorage(storage_indexing, json_file)
+        self._extract(dataset, extraction_order, storage)
+        storage.write()
+
+        if isinstance(output_file, (Path, str)):
+            json_file.close()
+
     def extract_to_pickle_files(self,
                                 dataset: Dataset,
                                 output_folder: Union[str, Path],
-                                extraction_order: ExtractionOrder = "feature",
+                                extraction_order: ExtractionOrder = "sample",
                                 storage_indexing: StorageIndexing = "sample",
-                                no_caching: bool = False):
-        pass  # to stream, indexing must be the same as sample order
+                                no_caching: bool = False,
+                                stream: bool = True):
+        extraction_policy.skip_errors = self.skip_errors
+        extraction_policy.no_cache = no_caching
+        if stream:
+            assert extraction_order == storage_indexing
+        if isinstance(output_folder, str):
+            output_folder = Path(output_folder)
+        assert output_folder.is_dir()
+
+        storage = PickleStoragePerFile(storage_indexing, output_folder, stream)
+        self._extract(dataset, extraction_order, storage)
+        storage.write()
 
     def extract_to_df(self,
                       dataset: Dataset,
@@ -156,7 +192,7 @@ class Extractor:
     def extract_to_hdf5(self,
                         dataset: Dataset,
                         database: Union[str, Path, 'h5py.File'],
-                        extraction_order: ExtractionOrder = "feature",
+                        extraction_order: ExtractionOrder = "sample",
                         storage_indexing: StorageIndexing = "sample",
                         no_caching: bool = False):
         pass  # to stream, indexing must be the same as sample order
