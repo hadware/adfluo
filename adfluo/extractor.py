@@ -1,6 +1,7 @@
 from csv import Dialect
 from pathlib import Path
-from typing import Union, Optional, TextIO, BinaryIO, Literal, TYPE_CHECKING, List, Dict, Set
+from typing import Union, Optional, TextIO, BinaryIO, TYPE_CHECKING, List, Dict, Set
+from typing_extensions import Literal
 
 from .extraction_graph import ExtractionDAG, FeatureName, FeatureNode
 from .dataset import DatasetLoader, Sample, ListLoader
