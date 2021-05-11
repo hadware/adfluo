@@ -4,6 +4,11 @@ from typing import Iterable, List, Dict, Any, Union
 
 class Sample(ABC):
 
+    def __new__(cls, *args, **kwargs):
+        if not isinstance(cls.id, property):
+            raise TypeError("id method has to be a property")
+        return super().__new__(cls)
+
     @property
     @abstractmethod
     def id(self):

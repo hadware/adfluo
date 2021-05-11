@@ -4,7 +4,7 @@ from io import StringIO, BytesIO
 from pathlib import Path
 
 from adfluo.dataset import ListLoader
-from adfluo.storage import BaseStorage, CSVStorage, JSONStorage, PickleStorage
+from adfluo.storage import BaseStorage, CSVStorage, JSONStorage, PickleStorage, PickleStoragePerFile
 
 DATA_FOLDER = Path(__file__).parent / Path("data/")
 
@@ -88,4 +88,29 @@ def test_json_storage():
     with open(DATA_FOLDER / Path("feat_idx.json")) as json_file:
         assert json.load(str_io) == json.load(json_file)
 
+
 # TODO : add test for pickle-per-file storage
+
+def test_pickle_per_file_sample(tmpdir):
+    tmpdir = Path(tmpdir.strpath)
+    storage = PickleStoragePerFile(indexing="sample", output_folder=tmpdir, streaming=False)
+    fill_storage(storage)
+    storage.write()
+    for f in tmpdir.iterdir():
+        f.match(r".*\.pckl")
+    assert {f.stem for f in tmpdir.iterdir()} == {sample.id for sample in dataset}
+
+
+def test_pickle_per_file_feature(tmpdir):
+    tmpdir = Path(tmpdir.strpath)
+    storage = PickleStoragePerFile(indexing="feature", output_folder=tmpdir, streaming=False)
+    fill_storage(storage)
+    storage.write()
+    for f in tmpdir.iterdir():
+        f.match(r".*\.pckl")
+    assert {f.stem for f in tmpdir.iterdir()} == set(storage_dict_feat_idx.keys())
+
+
+# TODO
+def test_pickle_per_file_streaming(tmpdir):
+    tmpdir = Path(tmpdir.strpath)
