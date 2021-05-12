@@ -11,6 +11,7 @@ DATA_FOLDER = Path(__file__).parent / Path("data/")
 samples = [{"feat_a": i, "feat_b": i ** 2} for i in range(3)]
 dataset = ListLoader(samples)
 feat_c = {sample.id: i * 3 for i, sample in enumerate(dataset)}
+feat_d = {sample.id: i - 1 for i, sample in enumerate(dataset)}
 
 storage_dict_sample_idx = {'0': {'feat_a': 0, 'feat_b': 0, 'feat_c': 0},
                            '1': {'feat_a': 1, 'feat_b': 1, 'feat_c': 3},
@@ -111,6 +112,18 @@ def test_pickle_per_file_feature(tmpdir):
     assert {f.stem for f in tmpdir.iterdir()} == set(storage_dict_feat_idx.keys())
 
 
-# TODO
-def test_pickle_per_file_streaming(tmpdir):
+def test_pickle_per_file_streaming_sample(tmpdir):
     tmpdir = Path(tmpdir.strpath)
+    storage = PickleStoragePerFile(indexing="sample", output_folder=tmpdir, streaming=True)
+    samples_ids = set()
+    for sample, sample_data in zip(dataset, samples):
+        samples_ids.add(sample.id)
+        storage.store_sample(sample, sample_data)
+        for f in tmpdir.iterdir():
+            f.match(r".*\.pckl")
+        print({f.stem for f in tmpdir.iterdir()})
+        assert {f.stem for f in tmpdir.iterdir()} == samples_ids
+        assert storage._data == dict()
+    assert {f.stem for f in tmpdir.iterdir()} == {sample.id for sample in dataset}
+
+
