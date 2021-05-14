@@ -61,26 +61,31 @@ Storage
 .. autoclass:: adfluo.storage.JSONStorage
     :members: write
     :show-inheritance:
+    :inherited-members:
     :undoc-members:
 
 .. autoclass:: adfluo.storage.PickleStorage
     :members: write
     :show-inheritance:
+    :inherited-members:
     :undoc-members:
 
 .. autoclass:: adfluo.storage.CSVStorage
     :members: write
     :show-inheritance:
+    :inherited-members:
     :undoc-members:
 
 .. autoclass:: adfluo.storage.DataFrameStorage
     :members: get_value
     :show-inheritance:
+    :inherited-members:
     :undoc-members:
 
 .. autoclass:: adfluo.storage.PickleStoragePerFile
     :members: write, flush
     :show-inheritance:
+    :inherited-members:
     :undoc-members:
 
 Pipeline
@@ -91,7 +96,9 @@ pass
 Extraction Graph
 ================
 
-pass
+.. autoclass:: adfluo.extraction_graph.BaseStorage
+    :members: store_feat , store_sample
+    :undoc-members:
 
 
 

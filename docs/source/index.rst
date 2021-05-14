@@ -25,6 +25,7 @@ Documentation Index
    quickstart
    user_guide
    how_tos
+   cli
    reference
    changelog
 

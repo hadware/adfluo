@@ -61,12 +61,12 @@ TODO
 Extraction
 ----------
 
-Extraction options
-~~~~~~~~~~~~~~~~~~
+Storage options
+~~~~~~~~~~~~~~~
 
 TODO
 
-Saving the features
+Extraction options
 ~~~~~~~~~~~~~~~~~~~
 
 TODO
