@@ -27,7 +27,7 @@ setup(
     keywords='',
     packages=find_packages(exclude=['docs', 'tests']),
     setup_requires=['setuptools>=38.6.0'],  # >38.6.0 needed for markdown README.md
-    tests_require=['pytest'],
+    tests_require=['pytest', "pandas"],
     install_requires=[
         "tqdm",
         "dataclasses; python_version <'3.7'",

@@ -6,14 +6,6 @@
 Welcome to adfluo's documentation!
 ==================================
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-   quickstart
-   user_guide
-   reference
-
 Installation
 ------------
 
@@ -23,10 +15,16 @@ You can install `adfluo` from Pypi using
 
    pip install adfluo
 
+Documentation Index
+===================
 
-Indices and tables
-==================
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   quickstart
+   user_guide
+   how_tos
+   reference
+   changelog
+

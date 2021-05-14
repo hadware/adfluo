@@ -24,8 +24,8 @@ def param(default: Optional[Hashable] = None) -> Any:
     return ProcessorParameter(default)
 
 
-class BaseProcessor(ABC):
-    """Base class for a processor from the feature extraction pipeline"""
+class ProcessorBase(ABC):
+    """Abstract base class for a processor from the feature extraction pipeline"""
 
     def __init__(self, **kwargs):
         param_names = set(k for k, v in self.__class__.__dict__.items()
@@ -92,7 +92,7 @@ class BaseProcessor(ABC):
                                PipelineBuildError)
         new_pipeline = ExtractionPipeline()
         new_pipeline.append(self)
-        if isinstance(other, BaseProcessor):
+        if isinstance(other, ProcessorBase):
             new_pipeline.append(other)
         elif isinstance(other, ExtractionPipeline):
             new_pipeline.concatenate(other)
@@ -105,7 +105,7 @@ class BaseProcessor(ABC):
                                PipelineBuildError)
         new_pipeline = ExtractionPipeline()
         new_pipeline.append(self)
-        if isinstance(other, BaseProcessor):
+        if isinstance(other, ProcessorBase):
             new_pipeline.merge_proc(other)
         elif isinstance(other, ExtractionPipeline):
             new_pipeline.merge_pipeline(other)
@@ -114,7 +114,7 @@ class BaseProcessor(ABC):
         return new_pipeline
 
 
-class SampleProcessor(BaseProcessor):
+class SampleProcessor(ProcessorBase):
     """Processes one sample after the other, independently"""
 
     def __call__(self, sample: Sample, sample_data: Tuple[Any]) -> Any:
@@ -144,6 +144,7 @@ class SampleProcessor(BaseProcessor):
 
 
 class FunctionWrapperMixin:
+    """Mixin class for processors that wrap a function"""
 
     def __init__(self, fun: Callable):
         self.fun = fun
@@ -173,6 +174,7 @@ class FunctionWrapperProcessor(FunctionWrapperMixin, SampleProcessor):
 
 
 F = FunctionWrapperProcessor
+F.__doc__ = FunctionWrapperProcessor.__doc__
 
 
 class BatchProcessor(SampleProcessor):
@@ -204,6 +206,7 @@ class SampleInputProcessor(SampleProcessor):
 
 
 Input = SampleInputProcessor
+Input.__doc__ = SampleInputProcessor.__doc__
 
 
 class PrinterProcessor(SampleProcessor):
@@ -221,7 +224,7 @@ Printer = PrinterProcessor()
 
 
 class SampleFeatureProcessor(SampleProcessor):
-    """A subtype of `PassThroughProcessor` used to reference a feature"""
+    """A passthrough processor used as a """
     feat_name: str = param()
 
     def __init__(self, feat_name: str):
@@ -232,9 +235,10 @@ class SampleFeatureProcessor(SampleProcessor):
 
 
 Feat = SampleFeatureProcessor
+Feat.__doc__ = SampleInputProcessor.__doc__
 
 
-class DatasetAggregator(BaseProcessor):
+class DatasetAggregator(ProcessorBase):
 
     @abstractmethod
     def aggregate(self, samples_data: List[Union[Any, Tuple]]) -> Any:

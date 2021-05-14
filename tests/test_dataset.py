@@ -1,5 +1,3 @@
-from typing import List
-
 import pytest
 
 from adfluo.dataset import Sample, DictSample, DatasetLoader, ListLoader
@@ -27,13 +25,14 @@ def test_sample_base():
         assert sample["idx"] == i
         assert sample["idx_sqr"] == i ** 2
 
+
 def test_sample_property():
     class MySample(Sample):
 
         def id(self):
             return "4577"
 
-    with pytest.raises(TypeError, match="id method has to be a property")   :
+    with pytest.raises(TypeError, match="id method has to be a property"):
         sample = MySample()
 
 

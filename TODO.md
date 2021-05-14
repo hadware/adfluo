@@ -11,8 +11,6 @@
 * replace asserts with real useful errors
 * add support for processors that return a Tuple, and add a specific split symbol
   to support splitting the tuple onto several processors ("tuple output unpacking")
-* add support for per feature/sample pickle file (for very large features) -> in a new method
-* add support for drop-on-save features (maybe find a better name)
 * add support for fully uncached extraction
 * for pickle (and maybe hdf5), add support for "direct store" feature (not stored in memory once computed,  
   directly put on disk in the resulting pickle)
@@ -31,7 +29,6 @@
 * make sure that `add_extraction(Input("test"))` works to get a feature directly from an input
 * add optional validation logic, either through a `validates` method in sampleprocessor 
   or via a dedicated `SampleValidator` processor.
-* check that id method of samples is a property
 
 # Future implementation Notes
 

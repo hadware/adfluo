@@ -4,11 +4,17 @@ import pickle
 from collections import defaultdict
 from csv import Dialect
 from pathlib import Path
-from typing import Optional, Union, TextIO, Dict, Any, BinaryIO, Set
+from typing import Optional, Union, TextIO, Dict, Any, BinaryIO, Set, TYPE_CHECKING
 
 from typing_extensions import Literal
 
 from .dataset import Sample
+
+if TYPE_CHECKING:
+    try:
+        import pandas as pd
+    except ImportError:
+        pass
 
 StorageIndexing = Literal["feature", "sample"]
 Feature = str
@@ -128,7 +134,7 @@ class JSONStorage(BaseStorage):
 
 class DataFrameStorage(BaseStorage):
 
-    def get_value(self):
+    def get_value(self) -> 'pd.DataFrame':
         data = super().get_value()
         import pandas as pd
         return pd.DataFrame.from_dict(data)

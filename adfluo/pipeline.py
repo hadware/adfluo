@@ -3,14 +3,14 @@ from typing import List, Union, Dict, Any
 from .dataset import Sample, DictSample
 from .exceptions import PipelineBuildError, PIPELINE_TYPE_ERROR
 from .extraction_graph import SampleProcessorNode, BatchProcessorNode, FeatureNode, InputNode, FeatureName
-from .processors import BaseProcessor, SampleProcessor, BatchProcessor, \
+from .processors import ProcessorBase, SampleProcessor, BatchProcessor, \
     Input, Feat
 
-PipelineElement = Union['ExtractionPipeline', BaseProcessor]
+PipelineElement = Union['ExtractionPipeline', ProcessorBase]
 ProcessorNode = Union[SampleProcessorNode, BatchProcessorNode]
 
 
-def wrap_processor(proc: BaseProcessor) -> ProcessorNode:
+def wrap_processor(proc: ProcessorBase) -> ProcessorNode:
     if isinstance(proc, Feat):
         return FeatureNode(proc)
     elif isinstance(proc, Input):
@@ -56,7 +56,7 @@ class ExtractionPipeline:
             if node not in self.inputs + self.outputs:
                 assert not isinstance(node, (FeatureNode, InputNode))
 
-    def append(self, proc: BaseProcessor):
+    def append(self, proc: ProcessorBase):
         new_node = wrap_processor(proc)
         # extraction DAG has not node: new dag!
         if self.nb_inputs == 0:
@@ -99,7 +99,7 @@ class ExtractionPipeline:
         self.outputs = pipeline.outputs
         self.all_nodes += pipeline.all_nodes
 
-    def merge_proc(self, proc: BaseProcessor):
+    def merge_proc(self, proc: ProcessorBase):
         new_node = wrap_processor(proc)
         self.inputs.append(new_node)
         self.outputs.append(new_node)
@@ -111,7 +111,7 @@ class ExtractionPipeline:
         self.all_nodes += pipeline.all_nodes
 
     def __rshift__(self, other: PipelineElement):
-        if isinstance(other, BaseProcessor):
+        if isinstance(other, ProcessorBase):
             self.append(other)
         elif isinstance(other, ExtractionPipeline):
             self.concatenate(other)
@@ -120,7 +120,7 @@ class ExtractionPipeline:
         return self
 
     def __add__(self, other: PipelineElement):
-        if isinstance(other, BaseProcessor):
+        if isinstance(other, ProcessorBase):
             self.merge_proc(other)
         elif isinstance(other, ExtractionPipeline):
             self.merge_pipeline(other)
