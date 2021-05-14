@@ -18,6 +18,13 @@ This tutorial is aimed relevant if you're planning on using ``adfluo`` to extrac
 - have implemented features that output intermediate data that might also be very large
 - some or all of the above
 
+TODO
+
+Picking the right storage format
+--------------------------------
+
+TODO
+
 Sharing your extraction pipelines
 ---------------------------------
 
