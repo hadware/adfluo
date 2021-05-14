@@ -1,6 +1,5 @@
 
 
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
@@ -8,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Index &mdash; adfluo 0.1.0 documentation</title>
+  <title>How-To &mdash; adfluo 0.1.0 documentation</title>
   
 
   
@@ -38,8 +37,10 @@
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
     
-    <link rel="index" title="Index" href="#" />
-    <link rel="search" title="Search" href="search.html" /> 
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Reference" href="reference.html" />
+    <link rel="prev" title="User Guide" href="user_guide.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -85,10 +86,14 @@
             
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide.html">User Guide</a></li>
-<li class="toctree-l1"><a class="reference internal" href="how_tos.html">How-To</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">How-To</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#dealing-with-large-datasets">Dealing with large datasets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sharing-your-extraction-pipelines">Sharing your extraction pipelines</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="reference.html">Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
 </ul>
@@ -139,11 +144,13 @@
     
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
-      <li>Index</li>
+      <li>How-To</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
+          
+            <a href="_sources/how_tos.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -156,11 +163,25 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-
-<h1 id="index">Index</h1>
-
-<div class="genindex-jumpbox">
- 
+  <div class="section" id="how-to">
+<span id="id1"></span><h1>How-To<a class="headerlink" href="#how-to" title="Permalink to this headline">¶</a></h1>
+<p>This section is a list of miscellaneous task-oriented tutorials for specific usages of <code class="docutils literal notranslate"><span class="pre">adfluo</span></code></p>
+<div class="section" id="dealing-with-large-datasets">
+<h2>Dealing with large datasets<a class="headerlink" href="#dealing-with-large-datasets" title="Permalink to this headline">¶</a></h2>
+<p>This tutorial is aimed relevant if you’re planning on using <code class="docutils literal notranslate"><span class="pre">adfluo</span></code> to extract feature from large datasets and extraction pipelines that:</p>
+<ul class="simple">
+<li><p>have samples that require a large amount of memory to be processed
+(e.g. : very long audio recordings)</p></li>
+<li><p>have so many small samples that loading all of them at once might fill
+your computer’s memory (e.g: a myriad of small images)</p></li>
+<li><p>have implemented features that output intermediate data that might also be very large</p></li>
+<li><p>some or all of the above</p></li>
+</ul>
+</div>
+<div class="section" id="sharing-your-extraction-pipelines">
+<h2>Sharing your extraction pipelines<a class="headerlink" href="#sharing-your-extraction-pipelines" title="Permalink to this headline">¶</a></h2>
+<p>pass</p>
+</div>
 </div>
 
 
@@ -168,6 +189,10 @@
            
           </div>
           <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="reference.html" class="btn btn-neutral float-right" title="Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="user_guide.html" class="btn btn-neutral float-left" title="User Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
 
   <hr/>
 
