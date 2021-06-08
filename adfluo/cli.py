@@ -69,4 +69,6 @@ if __name__ == '__main__':
     parser_extract.add_argument("--dag", action="store_true",
                                 help="If we're dealing ")
 
-    argparser.parse_args()
+    args = argparser.parse_args()
+    # Invoking the right subfunction
+    args.func(args)
