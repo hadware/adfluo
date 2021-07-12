@@ -87,12 +87,17 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="user_guide.html">User Guide</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">How-To</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#dealing-with-large-datasets">Dealing with large datasets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dealing-with-large-datasets">Dealing with large datasets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#make-data-loading-as-lazy-as-possible">Make data loading as lazy as possible</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#use-sample-wise-extraction-order">Use sample-wise extraction order</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#active-streaming-for-the-output-s-storage">Active streaming for the output’s storage</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#picking-the-right-storage-format">Picking the right storage format</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#sharing-your-extraction-pipelines">Sharing your extraction pipelines</a></li>
 </ul>
@@ -178,10 +183,23 @@
 (e.g. : very long audio recordings)</p></li>
 <li><p>have so many small samples that loading all of them at once might fill
 your computer’s memory (e.g: a myriad of small images)</p></li>
-<li><p>have implemented features that output intermediate data that might also be very large</p></li>
+<li><p>have implemented processors that output intermediate data that might also be very large</p></li>
 <li><p>some or all of the above</p></li>
 </ul>
+<p>What follows is some advice on best to use <code class="docutils literal notranslate"><span class="pre">adfluo</span></code> to prevent your feature computation code from
+eating all of your RAM.</p>
+<div class="section" id="make-data-loading-as-lazy-as-possible">
+<h3>Make data loading as lazy as possible<a class="headerlink" href="#make-data-loading-as-lazy-as-possible" title="Permalink to this headline">¶</a></h3>
 <p>TODO</p>
+</div>
+<div class="section" id="use-sample-wise-extraction-order">
+<h3>Use sample-wise extraction order<a class="headerlink" href="#use-sample-wise-extraction-order" title="Permalink to this headline">¶</a></h3>
+<p>TODO</p>
+</div>
+<div class="section" id="active-streaming-for-the-output-s-storage">
+<h3>Active streaming for the output’s storage<a class="headerlink" href="#active-streaming-for-the-output-s-storage" title="Permalink to this headline">¶</a></h3>
+<p>TODO</p>
+</div>
 </div>
 <div class="section" id="picking-the-right-storage-format">
 <h2>Picking the right storage format<a class="headerlink" href="#picking-the-right-storage-format" title="Permalink to this headline">¶</a></h2>
