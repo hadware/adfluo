@@ -126,4 +126,5 @@ if __name__ == '__main__':
 
     args = argparser.parse_args()
     logger.setLevel(logging.DEBUG if args.verbose else logging.INFO)
+    # Invoking the right subfunction
     args.func(args)
