@@ -40,12 +40,12 @@ will do.
 ```python
 import random
 
+# Defining our dataset as a list of dicts
 my_dataset = [
     {"numbers" : [random.randint(1, 20) for j in range(50)]
      "idx": i}
   for i in range(20)
 ]
-
 ```
 
 ## 

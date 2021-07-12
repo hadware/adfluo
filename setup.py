@@ -1,6 +1,7 @@
 # Always prefer setuptools over distutils
-from setuptools import setup, find_packages
 from pathlib import Path
+
+from setuptools import setup, find_packages
 
 here = Path(__file__).parent.absolute()
 
@@ -20,14 +21,17 @@ setup(
     license="MIT",
     classifiers=[
         'Development Status :: 3 - Alpha',
-        'Natural Language :: English',
         'License :: OSI Approved :: MIT License',
+        'Intended Audience :: Developers',
+        'Intended Audience :: Science/Research',
         'Programming Language :: Python :: 3.6'
+        'Programming Language :: Python :: 3.7'
+        'Programming Language :: Python :: 3.8'
+        'Programming Language :: Python :: 3.9'
     ],
     keywords='',
     packages=find_packages(exclude=['docs', 'tests']),
     setup_requires=['setuptools>=38.6.0'],  # >38.6.0 needed for markdown README.md
-    tests_require=['pytest', "pandas"],
     install_requires=[
         "tqdm",
         "dataclasses; python_version <'3.7'",
@@ -38,6 +42,15 @@ setup(
         "display": [
             "matplotlib",
             "networkX"
+        ],
+        "testing": [
+            "pytest",
+            "pandas",
+            "hdf5"
+        ],
+        "docs": [
+            "sphinx",
+            "sphinx_rtd_theme"
         ]
     }
 )

@@ -4,11 +4,12 @@ if TYPE_CHECKING:
     from .pipeline import ExtractionPipeline
     from .extraction_graph import ExtractionDAG
 
+
 def plot_pipeline(pl: ExtractionPipeline):
     try:
         import networkx
     except ImportError:
-        pass # TODO: error
+        pass  # TODO: error
 
 
 def plot_extraction_DAG(graph: ExtractionDAG):

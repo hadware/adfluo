@@ -13,7 +13,7 @@ Implementing your own DatasetLoader and Samples
 
 TODO
 
-Using python primitives as a Dataset
+Using Python primitives as a Dataset
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 TODO

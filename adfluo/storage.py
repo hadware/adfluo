@@ -109,7 +109,7 @@ class PickleStoragePerFile(BaseStorage):
             self.flush()
 
     def flush(self):
-        # writing to disk emptying storage cache
+        # writing to disk and emptying storage cache
         self.write()
         self._data = defaultdict(dict)
 
