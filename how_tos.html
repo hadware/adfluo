@@ -1,73 +1,34 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>How-To &mdash; adfluo 0.1.0 documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
-    
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-
-    
+    <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Command Line Interface" href="cli.html" />
     <link rel="prev" title="User Guide" href="user_guide.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="index.html" class="icon icon-home"> adfluo
-          
-
-          
           </a>
-
-          
-            
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -75,18 +36,7 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
@@ -95,7 +45,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#dealing-with-large-datasets">Dealing with large datasets</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#make-data-loading-as-lazy-as-possible">Make data loading as lazy as possible</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#use-sample-wise-extraction-order">Use sample-wise extraction order</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#active-streaming-for-the-output-s-storage">Active streaming for the output’s storage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#enable-streaming-for-the-output-s-storage">Enable streaming for the output’s storage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#disable-any-form-of-caching">Disable any form of caching</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#picking-the-right-storage-format">Picking the right storage format</a></li>
@@ -107,76 +58,35 @@
 <li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">adfluo</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-        
       <li>How-To</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
             <a href="_sources/how_tos.rst.txt" rel="nofollow"> View page source</a>
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
-  <div class="section" id="how-to">
-<span id="id1"></span><h1>How-To<a class="headerlink" href="#how-to" title="Permalink to this headline">¶</a></h1>
+             
+  <section id="how-to">
+<span id="id1"></span><h1>How-To<a class="headerlink" href="#how-to" title="Permalink to this headline"></a></h1>
 <p>This section is a list of miscellaneous task-oriented tutorials for specific usages of <code class="docutils literal notranslate"><span class="pre">adfluo</span></code></p>
-<div class="section" id="dealing-with-large-datasets">
-<h2>Dealing with large datasets<a class="headerlink" href="#dealing-with-large-datasets" title="Permalink to this headline">¶</a></h2>
+<section id="dealing-with-large-datasets">
+<h2>Dealing with large datasets<a class="headerlink" href="#dealing-with-large-datasets" title="Permalink to this headline"></a></h2>
 <p>This tutorial is aimed relevant if you’re planning on using <code class="docutils literal notranslate"><span class="pre">adfluo</span></code> to extract feature from large datasets and extraction pipelines that:</p>
 <ul class="simple">
 <li><p>have samples that require a large amount of memory to be processed
@@ -188,75 +98,125 @@ your computer’s memory (e.g: a myriad of small images)</p></li>
 </ul>
 <p>What follows is some advice on best to use <code class="docutils literal notranslate"><span class="pre">adfluo</span></code> to prevent your feature computation code from
 eating all of your RAM.</p>
-<div class="section" id="make-data-loading-as-lazy-as-possible">
-<h3>Make data loading as lazy as possible<a class="headerlink" href="#make-data-loading-as-lazy-as-possible" title="Permalink to this headline">¶</a></h3>
+<section id="make-data-loading-as-lazy-as-possible">
+<h3>Make data loading as lazy as possible<a class="headerlink" href="#make-data-loading-as-lazy-as-possible" title="Permalink to this headline"></a></h3>
+<p>If your samples contain large files (for instance, a 2h long WAV audio file),
+you should probably make the sample data loading as lazy as possible. This
+means that the sample instance only contains a reference to the actual data
+that is to be processed:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>   from adfluo import Sample
+   from scipy.io.wavefile import read as read_wav
+   from pillow import read as read_jpeg
+
+   class MyLazySample(Sample):
+       &quot;&quot;&quot;This sample class only stores the paths to the data it references,
+       and loads the actual data only when asked to.&quot;&quot;&quot;
+
+       def __init__(self, data_path: Path):
+           self.audio_path = data_path / Path(&quot;audio.wav&quot;)
+           self.img_path = data_path / Path(&quot;img.jpeg&quot;)
+
+       def __getitem__(self, data_name: str):
+           if data_name == &quot;audio&quot;:
+               return read_wav(self.audio_path)
+           elif data_name == &quot;img&quot;:
+               return read_jpeg(self.img_path)
+
+``adfluo`` will then take care of caching what&#39;s needed and what&#39;s not as efficiently as possible.
+</pre></div>
+</div>
+</section>
+<section id="use-sample-wise-extraction-order">
+<h3>Use sample-wise extraction order<a class="headerlink" href="#use-sample-wise-extraction-order" title="Permalink to this headline"></a></h3>
+<p>By default, to keep a cleaner output, <code class="docutils literal notranslate"><span class="pre">adfluo</span></code>’s extraction order is <em>feature-wise</em>, meaning that
+<code class="docutils literal notranslate"><span class="pre">adfluo</span></code> will extract <code class="docutils literal notranslate"><span class="pre">feat_A</span></code> for <strong>all the samples</strong> in the dataset, then
+proceed to do the same for <code class="docutils literal notranslate"><span class="pre">feat_b</span></code> and so on. This is made as efficient as possible (by computing
+features that share some common steps first, enabling any caches to be flushed).</p>
+<p>One way to make <code class="docutils literal notranslate"><span class="pre">afluo</span></code> much leaner in term of memory usage is to run the
+extraction <code class="docutils literal notranslate"><span class="pre">sample-wise</span></code>. <code class="docutils literal notranslate"><span class="pre">afluo</span></code> will then extract all features for <code class="docutils literal notranslate"><span class="pre">sample_x</span></code>,
+then all features for <code class="docutils literal notranslate"><span class="pre">sample_y</span></code>, and so on. This has the slight drawback of producing
+a messier output log (if verbose mode is enabled), but otherwise doesn’t have any
+impact on performance.</p>
+<p>To extract sample-wise, in any of the extraction methods from an <code class="docutils literal notranslate"><span class="pre">Extractor</span></code>
+instance, set <code class="docutils literal notranslate"><span class="pre">extraction_order</span></code> to <code class="docutils literal notranslate"><span class="pre">&quot;sample&quot;</span></code> :</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">extractor</span><span class="o">.</span><span class="n">extract_to_pickle</span><span class="p">(</span><span class="n">my_dataset</span><span class="p">,</span> <span class="s2">&quot;path/to/feature/file.pckl&quot;</span><span class="p">,</span> <span class="n">extraction_order</span><span class="o">=</span><span class="s2">&quot;sample&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>If your extraction pipelines contain <code class="docutils literal notranslate"><span class="pre">BatchProcessors</span></code>, it’s best that you
+stick to feature-wise extraction order.</p>
+</div>
+</section>
+<section id="enable-streaming-for-the-output-s-storage">
+<h3>Enable streaming for the output’s storage<a class="headerlink" href="#enable-streaming-for-the-output-s-storage" title="Permalink to this headline"></a></h3>
+<p>If both the input data and the extracted features are large, it’s best to use all of
+the aforementioned tricks, plus this one. This only works if you’re storing
+your extracted features in the “1-pickle-per-file” output or the HDF5 format.</p>
+<p>It also requires that the storage indexing is the same as the extraction order.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">extractor</span><span class="o">.</span><span class="n">extract_to_pickle_files</span><span class="p">(</span><span class="n">my_dataset</span><span class="p">,</span> <span class="s2">&quot;pickles/folder/&quot;</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">extractor</span><span class="o">.</span><span class="n">extract_to_hdf5</span><span class="p">(</span><span class="n">my_dataset</span><span class="p">,</span> <span class="s2">&quot;path/to/data.hdf&quot;</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="disable-any-form-of-caching">
+<h3>Disable any form of caching<a class="headerlink" href="#disable-any-form-of-caching" title="Permalink to this headline"></a></h3>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>While all of the previous solutions had no impact on performance,
+this solution can definitely have an impact, especially if some costly
+computation step is shared by several pipelines.</p>
+</div>
+<p>This is a last-ditch solution that will disable any form of caching strategy
+on <code class="docutils literal notranslate"><span class="pre">adfluo</span></code>’s side. In consequence, each step defined in a feature’s computation
+is systematically computed for each sample, even if it shared with another feature’s
+pipeline. Enable it by setting the <code class="docutils literal notranslate"><span class="pre">no_caching</span></code> argument:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">extractor</span><span class="o">.</span><span class="n">extract_to_pickle</span><span class="p">(</span><span class="n">my_dataset</span><span class="p">,</span> <span class="s2">&quot;path/to/feature/file.pckl&quot;</span><span class="p">,</span> <span class="n">no_caching</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="picking-the-right-storage-format">
+<h2>Picking the right storage format<a class="headerlink" href="#picking-the-right-storage-format" title="Permalink to this headline"></a></h2>
 <p>TODO</p>
+</section>
+<section id="sharing-your-extraction-pipelines">
+<h2>Sharing your extraction pipelines<a class="headerlink" href="#sharing-your-extraction-pipelines" title="Permalink to this headline"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+</pre></div>
 </div>
-<div class="section" id="use-sample-wise-extraction-order">
-<h3>Use sample-wise extraction order<a class="headerlink" href="#use-sample-wise-extraction-order" title="Permalink to this headline">¶</a></h3>
-<p>TODO</p>
-</div>
-<div class="section" id="active-streaming-for-the-output-s-storage">
-<h3>Active streaming for the output’s storage<a class="headerlink" href="#active-streaming-for-the-output-s-storage" title="Permalink to this headline">¶</a></h3>
-<p>TODO</p>
-</div>
-</div>
-<div class="section" id="picking-the-right-storage-format">
-<h2>Picking the right storage format<a class="headerlink" href="#picking-the-right-storage-format" title="Permalink to this headline">¶</a></h2>
-<p>TODO</p>
-</div>
-<div class="section" id="sharing-your-extraction-pipelines">
-<h2>Sharing your extraction pipelines<a class="headerlink" href="#sharing-your-extraction-pipelines" title="Permalink to this headline">¶</a></h2>
-<p>pass</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="cli.html" class="btn btn-neutral float-right" title="Command Line Interface" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="user_guide.html" class="btn btn-neutral float-left" title="User Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="cli.html" class="btn btn-neutral float-right" title="Command Line Interface" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2021, Hadrien Titeux.
-
-    </p>
+    <p>&#169; Copyright 2021, Hadrien Titeux.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>
