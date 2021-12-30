@@ -29,6 +29,8 @@
 * make sure that `add_extraction(Input("test"))` works to get a feature directly from an input
 * add optional validation logic, either through a `validates` method in sampleprocessor 
   or via a dedicated `SampleValidator` processor.
+* URGENT : make feature extraction order cache-efficient (using a tree iterator)
+* URGENT : rename "pickle per file" to "split-pickle"
 
 # Future implementation Notes
 

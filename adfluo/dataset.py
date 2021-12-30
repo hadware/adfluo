@@ -18,7 +18,7 @@ class Sample(ABC):
         return hash(self.id)
 
     @abstractmethod
-    def __getitem__(self, data_name):
+    def __getitem__(self, data_name: str):
         """This method should be overridden. Depending on the data that is being
         queried, returns the right value"""
         raise NotImplementedError()

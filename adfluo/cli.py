@@ -1,3 +1,4 @@
+import json
 import logging
 from argparse import ArgumentParser, Namespace
 from collections import Counter
@@ -6,7 +7,11 @@ from typing import Optional, List, Dict
 
 from adfluo import DatasetLoader, Extractor
 from adfluo.dataset import ListLoader
-from .utils import logger
+from .utils import logger, extraction_policy
+
+
+class CLIParametersError(Exception):
+    pass
 
 
 def import_class(class_path: str) -> Optional[Extractor,
@@ -25,15 +30,71 @@ def import_class(class_path: str) -> Optional[Extractor,
         return obj
 
 
-def extract(args: Namespace):
-    pass
+# TODO: add support for dataset_args
+def load_dataset(dataset_name: str) -> DatasetLoader:
+    # first trying to load from json (dataset is a path)
+    dataset_path = Path(dataset_name)
+    if dataset_path.is_file() and dataset_path.suffix == ".json":
+        with open(dataset_path) as json_file:
+            json_data = json.load(json_file)
+            return ListLoader(json_data)
 
+    else:
+        obj = import_class(args.extractor_or_dataloader)
+        if isinstance(obj, list):
+            return ListLoader(obj)
+        elif isinstance(obj, DatasetLoader):
+            return obj
+        elif obj is None:
+            raise CLIParametersError(f"Couldn't import any dataset with name {dataset_name}")
+        else:
+            raise CLIParametersError(f"{dataset_name} isn't a valid dataset object")
+
+
+def extract(args: Namespace):
+    extractor: Extractor = import_class(args.extractor)
+    if not isinstance(extractor, Extractor):
+        raise CLIParametersError(f"{args.extractor} isn't an extractor object")
+    elif extractor is None:
+        raise CLIParametersError(f"Couldn't import extractor {args.extractor_or_dataloader}")
+
+    dataset: DatasetLoader = load_dataset(args.dataset)
+
+    if args.test_samples:
+        pass  # TODO
+
+    extraction_format: str = args.format
+    if extraction_format == "csv":
+        extraction_method = extractor.extract_to_csv
+    elif extraction_format == "json":
+        extraction_method = extractor.extract_to_json
+    elif extraction_format == "pickle":
+        extraction_method = extractor.extract_to_pickle
+    elif extraction_format == "split-pickle":
+        extraction_method = extractor.extract_to_pickle_files
+    elif extraction_format == "hdf5":
+        extraction_method = extractor.extract_to_hdf5
+    else:
+        raise ValueError("Invalid extraction format")
+
+    kwargs = {
+        "extraction_order": args.order,
+        "storage_indexing": args.indexing,
+        "no_caching": args.no_caching
+    }
+    if extraction_format == "split-pickle":
+        kwargs["output_folder"] = args.output
+    else:
+        kwargs["output_file"] = args.output
+
+    extraction_policy.skip_errors = args.skip_errors
+
+    extraction_method(dataset, **kwargs)
 
 def show(args: Namespace):
-    # TODO: show duplicate id's in the dataset report
     obj = import_class(args.extractor_or_dataloader)
     if obj is None:
-        logging.error(f"Couldn't import extractor or dataset class {args.extractor_or_dataloader}")
+        logger.error(f"Couldn't import extractor or dataset class {args.extractor_or_dataloader}")
         exit(1)
 
     # TODO: attempt at loading from json
@@ -87,6 +148,8 @@ if __name__ == '__main__':
                                 help="If the dataset argument is a class, "
                                      "these are passed as the class's "
                                      "instantiation parameters")
+    parser_extract.add_argument("--output", "-o", type=Path, required=True,
+                                help="Output file path or folder (depending on format)")
     parser_extract.add_argument("--feats", nargs="*", type=str,
                                 help="Extract only for the specified features")
     parser_extract.add_argument("--samples", nargs="*", type=str,
@@ -95,16 +158,22 @@ if __name__ == '__main__':
                                 choices=["feature", "sample"],
                                 default="sample",
                                 help="Storage indexing policy")
-    parser_extract.add_argument("--extraction_order",
+    parser_extract.add_argument("--order",
                                 choices=["feature", "sample"],
                                 default="feature",
                                 help="Extraction order (feature-wise or sample-wise")
+    parser_extract.add_argument("--skip_errors",
+                                action="store_true",
+                                help="Errors while computing a feature for a sample "
+                                     "are ignored.")
+    parser_extract.add_argument("--no_caching",
+                                action="store_true",
+                                help="Disable any form of caching (may impact performances "
+                                     "but prevents memory overflows")
     parser_extract.add_argument("--format", "-f", type=str,
-                                choices=["csv", "df", "pickle", "hdf5"],
+                                choices=["csv", "df", "pickle", "split-pickle", "hdf5"],
                                 default="pickle",
                                 help="Storage format for the extracted features")
-    parser_extract.add_argument("--output_file", "-o", type=Path,
-                                help="Output file path")
     parser_extract.add_argument("--test_samples",
                                 action="store_true",
                                 help="Just test that samples all can all provide "
@@ -127,4 +196,8 @@ if __name__ == '__main__':
     args = argparser.parse_args()
     logger.setLevel(logging.DEBUG if args.verbose else logging.INFO)
     # Invoking the right subfunction
-    args.func(args)
+    try:
+        args.func(args)
+    except CLIParametersError as err:
+        logger.error(str(err))
+        exit(1)

@@ -39,11 +39,11 @@ setup(
         "typing-extensions"
     ],
     extras_requires={
-        "display": [
+        "plot": [
             "matplotlib",
             "networkX"
         ],
-        "testing": [
+        "tests": [
             "pytest",
             "pandas",
             "hdf5"

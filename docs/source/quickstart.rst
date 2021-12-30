@@ -104,17 +104,13 @@ tagging, and one to count words.
 
 .. code-block:: python
 
-    from adfluo import SampleProcessor
+    from adfluo import SampleProcessor, param
 
     def split_text(text: str) -> List[str]:
         return text.split(" ,.?!;")
 
     class PartofSpeech(SampleProcessor):
-
-        def __init__(word_type: str):
-            super().__init__(word_type=word_type)
-            assert word_type in ("adj", "noun")
-            self.word_type = word_type
+        word_type: str = param()
 
         def process(word_list: List[str]) -> List[str]:
             # here, through some magic (for instance using spacy),
@@ -168,8 +164,7 @@ Now, we can create the pipelines, still using the extractor we've created earlie
     )
 
     extractor.add_extraction(
-         Input("speech")
-         >> T(spoken_time, Feat("audio_duration"))
+         (Input("speech") >> spoken_time) + Feat("audio_duration")
          >> lambda dur_spoken, dur_audio : dur_spoken/ dur_audio
          >> Feat("spoken_ratio")
     )
@@ -182,7 +177,7 @@ which won't require any new processor (we'll be using a lambda again):
 .. code-block:: python
 
     extractor.add_extraction(
-            T(Feat("nouns_count"), Feat("spoken_duration"))
+            (Feat("nouns_count") + Feat("spoken_duration"))
              >> lambda nb_nouns, dur_spoken : nb_nouns/ dur_audio
              >> Feat("nouns_per_seconds")
         )
