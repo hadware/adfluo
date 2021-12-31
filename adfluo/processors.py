@@ -82,9 +82,12 @@ class ProcessorBase(ABC):
         return hash(self) == hash(other)
 
     def __repr__(self):
-        return "<%s(%s)>" % (
-            self.__class__.__name__,
-            ",".join(f"{key}={value!r}" for key, value in self._params.items())
+        return f"<{str(self)}>"
+
+    def __str__(self):
+        return "{class_name}({args})".format(
+            class_name=self.__class__.__name__,
+            args=",".join(f"{key}={value!r}" for key, value in self._params.items())
         )
 
     def __rshift__(self, other: 'PipelineElement'):
@@ -167,7 +170,10 @@ class FunctionWrapperProcessor(FunctionWrapperMixin, SampleProcessor):
     a processor"""
 
     def __repr__(self):
-        return f"{self.fun.__name__}"
+        return f"<{str(self)}>"
+
+    def __str__(self):
+        return f"F({self.fun.__name__})"
 
     def process(self, *args):
         return self.fun(*args)
@@ -204,6 +210,9 @@ class SampleInputProcessor(SampleProcessor):
                 raise InvalidInputData(self.data_name, self.current_sample.id)
         return data
 
+    def __str__(self):
+        return f"Input({self.data_name})"
+
 
 Input = SampleInputProcessor
 Input.__doc__ = SampleInputProcessor.__doc__
@@ -233,6 +242,8 @@ class SampleFeatureProcessor(SampleProcessor):
     def process(self, *args) -> Tuple:
         return args[0]
 
+    def __str__(self):
+        return f"Feat({self.feat_name})"
 
 Feat = SampleFeatureProcessor
 Feat.__doc__ = SampleInputProcessor.__doc__

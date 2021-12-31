@@ -31,10 +31,14 @@ class BaseGraphNode(metaclass=ABCMeta):
     def __eq__(self, other: 'BaseGraphNode'):
         return hash(self) == hash(other)
 
+    @abstractmethod
+    def __str__(self):
+        pass
+
     @property
     def depth(self):
         if self._depth is None:
-            self._depth = max(parent.depth for parent in self.parents)
+            self._depth = max(parent.depth for parent in self.parents) + 1
         return self._depth
 
     @depth.setter
@@ -143,6 +147,9 @@ class SampleProcessorNode(CachedNode):
             self._failed_samples.add(sample.id)
             raise BadSampleException(sample)
 
+    def __str__(self):
+        return str(self.processor)
+
 
 class BatchProcessorNode(CachedNode):
 
@@ -175,6 +182,9 @@ class BatchProcessorNode(CachedNode):
             self.compute_batch()
         parents_output = self.batch_cache.pop(sample.id)
         return self.processor(sample, parents_output)
+
+    def __str__(self):
+        return str(self.processor)
 
 
 class FeatureNode(SampleProcessorNode):
@@ -235,6 +245,9 @@ class RootNode(BaseGraphNode):
 
     def __getitem__(self, sample: Sample) -> Sample:
         return sample
+
+    def __str__(self):
+        return "Root"
 
 
 class ExtractionDAG:
@@ -359,13 +372,10 @@ class ExtractionDAG:
         feat_dict = {}
         feat_node = self.feature_nodes[feature_name]
 
-        if show_progress:
-            it = tqdm(self._loader, desc=feature_name)
-        else:
-            it = self._loader
-
         sample_ids = set()
-        for sample in it:
+        for sample in tqdm(self._loader,
+                           desc=feature_name,
+                           disable=not show_progress):
             if sample.id in sample_ids:
                 raise DuplicateSampleError(sample.id)
             sample_ids.add(sample.id)
@@ -381,12 +391,9 @@ class ExtractionDAG:
         """Extract all features for a unique sample"""
         feat_dict = {}
 
-        if show_progress:
-            it = tqdm(self.feature_nodes.items(), desc=sample.id)
-        else:
-            it = self.feature_nodes.items()
-
-        for feature_name, feature_node in it:
+        for feature_name, feature_node in tqdm(self.feature_nodes.items(),
+                                               desc=sample.id,
+                                               disable=not show_progress):
             try:
                 feat_dict[feature_name] = feature_node[sample]
             except BadSampleException:

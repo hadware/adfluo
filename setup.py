@@ -38,7 +38,7 @@ setup(
         "sortedcontainers>=2.3.0",
         "typing-extensions"
     ],
-    extras_requires={
+    extras_require={
         "plot": [
             "matplotlib",
             "networkX"

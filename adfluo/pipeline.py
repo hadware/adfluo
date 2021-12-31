@@ -1,8 +1,10 @@
+import warnings
 from typing import List, Union, Dict, Any
 
 from .dataset import Sample, DictSample
 from .exceptions import PipelineBuildError, PIPELINE_TYPE_ERROR
 from .extraction_graph import SampleProcessorNode, BatchProcessorNode, FeatureNode, InputNode, FeatureName
+from .plotting import plot_dag
 from .processors import ProcessorBase, SampleProcessor, BatchProcessor, \
     Input, Feat
 
@@ -138,3 +140,10 @@ class ExtractionPipeline:
             output_node: FeatureNode
             output_dict[output_node.processor.feat_name] = output_node[sample]
         return output_dict
+
+    def _repr_png_(self):
+        """Ipython notebook visualization"""
+        try:
+            plot_dag(self, show=True)
+        except ImportError as err:
+            warnings.warn(str(err))
