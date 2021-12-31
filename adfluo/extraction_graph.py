@@ -249,6 +249,9 @@ class RootNode(BaseGraphNode):
     def __str__(self):
         return "Root"
 
+    def ancestor_hash(self) -> int:
+        return hash(self)
+
 
 class ExtractionDAG:
 

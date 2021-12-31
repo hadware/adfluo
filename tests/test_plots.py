@@ -1,7 +1,5 @@
-import matplotlib.image as mpimg
-import matplotlib.pyplot as plt
-
 from adfluo import Input, F, Feat, SampleProcessor
+from adfluo.extraction_graph import ExtractionDAG
 from adfluo.plotting import plot_dag
 
 
@@ -20,3 +18,19 @@ def test_plot_pipeline():
     pl = (Input("a") + (Input("b") >> F(add_one))) >> Adder() >> F(times_two) >> Feat("test_feat")
     plot_png = plot_dag(pl, show=True)
 
+
+def test_plot_graph():
+    def a(arg): pass
+
+    def b(arg_a, arg_b): pass
+
+    def c(arg_a, arg_b): pass
+
+    def d(arg): pass
+
+    dag = ExtractionDAG()
+    dag.add_pipeline((Input("input_a") >> F(a) + Input("input_b")) >> F(b) >> F(d) >> Feat("feat_b"))
+    dag.add_pipeline((Input("input_a") >> F(a) + Input("input_b")) >> F(c) >> F(d) >> Feat("feat_c"))
+    # TODO: investigate why there isn't any F(c) in the nodes
+
+    plot_png = plot_dag(dag, show=True)

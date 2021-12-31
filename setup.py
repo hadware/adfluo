@@ -46,7 +46,9 @@ setup(
         "tests": [
             "pytest",
             "pandas",
-            "hdf5"
+            "h5py",
+            "matplotlib",
+            "networkX"
         ],
         "docs": [
             "sphinx",
