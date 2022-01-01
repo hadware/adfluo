@@ -56,6 +56,12 @@ class ProcessorBase(ABC):
     def nb_args(self):
         return len(signature(self.process).parameters)
 
+    @property
+    @abstractmethod
+    def output_type(self):
+        pass
+
+
     @abstractmethod
     def process(self, *args) -> Any:
         """Processes just one sample"""
@@ -145,6 +151,14 @@ class SampleProcessor(ProcessorBase):
         else:
             return processed_sample_data
 
+    @property
+    def output_type(self):
+        try:
+            return self.process.__annotations__["return"]
+        except KeyError:
+            return Any
+
+
 
 class FunctionWrapperMixin:
     """Mixin class for processors that wrap a function"""
@@ -162,7 +176,14 @@ class FunctionWrapperMixin:
         """Hashes the disassembled code of the wrapped function."""
         instructions = tuple((instr.opname, instr.arg, instr.argval)
                              for instr in get_instructions(self.fun))
-        return hash(instructions)
+        return hash((self.__class__, self.fun.__name__, instructions))
+
+    @property
+    def output_type(self):
+        try:
+            return self.fun.__annotations__["return"]
+        except KeyError:
+            return Any
 
 
 class FunctionWrapperProcessor(FunctionWrapperMixin, SampleProcessor):
