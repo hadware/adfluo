@@ -86,7 +86,7 @@ class PickleStorage(BaseStorage):
         pickle.dump(self.get_value(), self.file)
 
 
-class PickleStoragePerFile(BaseStorage):
+class SplitPickleStorage(BaseStorage):
     # TODO
     #  - add argument "stream" that forces it to dump to file after each storingl
 

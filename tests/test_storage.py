@@ -4,7 +4,7 @@ from io import StringIO, BytesIO
 from pathlib import Path
 
 from adfluo.dataset import ListLoader
-from adfluo.storage import BaseStorage, CSVStorage, JSONStorage, PickleStorage, PickleStoragePerFile
+from adfluo.storage import BaseStorage, CSVStorage, JSONStorage, PickleStorage, SplitPickleStorage
 
 DATA_FOLDER = Path(__file__).parent / Path("data/")
 
@@ -94,7 +94,7 @@ def test_json_storage():
 
 def test_pickle_per_file_sample(tmpdir):
     tmpdir = Path(tmpdir.strpath)
-    storage = PickleStoragePerFile(indexing="sample", output_folder=tmpdir, streaming=False)
+    storage = SplitPickleStorage(indexing="sample", output_folder=tmpdir, streaming=False)
     fill_storage(storage)
     storage.write()
     for f in tmpdir.iterdir():
@@ -104,7 +104,7 @@ def test_pickle_per_file_sample(tmpdir):
 
 def test_pickle_per_file_feature(tmpdir):
     tmpdir = Path(tmpdir.strpath)
-    storage = PickleStoragePerFile(indexing="feature", output_folder=tmpdir, streaming=False)
+    storage = SplitPickleStorage(indexing="feature", output_folder=tmpdir, streaming=False)
     fill_storage(storage)
     storage.write()
     for f in tmpdir.iterdir():
@@ -114,7 +114,7 @@ def test_pickle_per_file_feature(tmpdir):
 
 def test_pickle_per_file_streaming_sample(tmpdir):
     tmpdir = Path(tmpdir.strpath)
-    storage = PickleStoragePerFile(indexing="sample", output_folder=tmpdir, streaming=True)
+    storage = SplitPickleStorage(indexing="sample", output_folder=tmpdir, streaming=True)
     samples_ids = set()
     for sample, sample_data in zip(dataset, samples):
         samples_ids.add(sample.id)

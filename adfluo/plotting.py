@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 def prepare_pipeline_nodes(pl: 'ExtractionPipeline') -> List['BaseGraphNode']:
-    # reseting node depths to prevent fuckups
+    # resetting node depths to prevent fuckups
     for node in pl.all_nodes:
         node.depth = None
 
@@ -66,9 +66,9 @@ def plot_dag(dag: Union['ExtractionPipeline', 'ExtractionDAG'],
 
     # creating a graph, and adding all nodes to the graph, using their depth as
     # a layer
-    pl_graph = nx.DiGraph()
+    dag_graph = nx.DiGraph()
     for node in all_nodes:
-        pl_graph.add_node(node.ancestor_hash(), layer=node.depth, label=str(node))
+        dag_graph.add_node(node.ancestor_hash(), layer=node.depth, label=str(node))
 
     # adding edges
     for node in all_nodes:
@@ -79,14 +79,14 @@ def plot_dag(dag: Union['ExtractionPipeline', 'ExtractionDAG'],
             output_type = "Sample"
         if output_type is Any:
             output_type = None
-        pl_graph.add_edges_from(product([node.ancestor_hash()],
+        dag_graph.add_edges_from(product([node.ancestor_hash()],
                                         [child.ancestor_hash() for child in node.children]),
                                 output_type=output_type)
 
     # rendering graph layout
-    graph_layout = nx.multipartite_layout(pl_graph, subset_key="layer")
+    graph_layout = nx.multipartite_layout(dag_graph, subset_key="layer")
 
-    # building labels and labels repositioning
+    # building labels and labels repositioning (under or over the node)
     label_dict = {node.ancestor_hash(): str(node) for node in all_nodes}
     labels_layout = {}
 
@@ -104,17 +104,17 @@ def plot_dag(dag: Union['ExtractionPipeline', 'ExtractionDAG'],
     node_colors = [NODE_COLORS_MAPPING[node.__class__] for node in all_nodes]
 
     # edges labels list
-    edges_labels = {edge: format_annotation(pl_graph.get_edge_data(*edge)["output_type"])
-                    for edge in pl_graph.edges
-                    if pl_graph.get_edge_data(*edge)["output_type"] is not None}
+    edges_labels = {edge: format_annotation(dag_graph.get_edge_data(*edge)["output_type"])
+                    for edge in dag_graph.edges
+                    if dag_graph.get_edge_data(*edge)["output_type"] is not None}
 
     # generating plot
     plt.figure(figsize=(dag_depth * 2, dag_width))
-    nx.draw_networkx_nodes(pl_graph, graph_layout, node_size=600, node_color=node_colors,
+    nx.draw_networkx_nodes(dag_graph, graph_layout, node_size=600, node_color=node_colors,
                            edgecolors="black")
-    nx.draw_networkx_labels(pl_graph, labels_layout, label_dict)
-    nx.draw_networkx_edges(pl_graph, graph_layout, connectionstyle='arc3,rad=-0.2')
-    nx.draw_networkx_edge_labels(pl_graph, graph_layout,
+    nx.draw_networkx_labels(dag_graph, labels_layout, label_dict)
+    nx.draw_networkx_edges(dag_graph, graph_layout, connectionstyle='arc3,rad=-0.2')
+    nx.draw_networkx_edge_labels(dag_graph, graph_layout,
                                  edge_labels=edges_labels,
                                  font_size=8,
                                  bbox=dict(alpha=0),

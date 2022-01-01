@@ -9,7 +9,7 @@ from .exceptions import DuplicateSampleError
 from .extraction_graph import ExtractionDAG, FeatureName, FeatureNode
 from .pipeline import ExtractionPipeline
 from .storage import BaseStorage, StorageIndexing, CSVStorage, PickleStorage, DataFrameStorage, JSONStorage, \
-    PickleStoragePerFile
+    SplitPickleStorage
 from .utils import extraction_policy, logger
 
 ExtractionOrder = Literal["feature", "sample"]
@@ -174,7 +174,7 @@ class Extractor:
             output_folder = Path(output_folder)
         assert output_folder.is_dir()
 
-        storage = PickleStoragePerFile(storage_indexing, output_folder, stream)
+        storage = SplitPickleStorage(storage_indexing, output_folder, stream)
         self._extract(dataset, extraction_order, storage)
         storage.write()
 
