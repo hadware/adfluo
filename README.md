@@ -23,7 +23,7 @@ Adfluo makes your feature extraction code:
 - **reusable**: By separating the input data from the feature computation logic,
   you'll easily be able to reuse an existing extraction pipeline on another dataset, 
   or use another extraction pipeline on the same dataset.
-- **sample-oriented**: extraction is 
+- **sample-oriented**: ``adfluo`` organizes its processing around samples of data.
   
 ## Installation
 

@@ -64,6 +64,8 @@ def plot_dag(dag: Union['ExtractionPipeline', 'ExtractionDAG'],
     else:
         all_nodes = prepare_dag_nodes(dag)
 
+    all_nodes.sort(key=lambda node: node.depth)
+
     # creating a graph, and adding all nodes to the graph, using their depth as
     # a layer
     dag_graph = nx.DiGraph()
@@ -80,8 +82,8 @@ def plot_dag(dag: Union['ExtractionPipeline', 'ExtractionDAG'],
         if output_type is Any:
             output_type = None
         dag_graph.add_edges_from(product([node.ancestor_hash()],
-                                        [child.ancestor_hash() for child in node.children]),
-                                output_type=output_type)
+                                         [child.ancestor_hash() for child in node.children]),
+                                 output_type=output_type)
 
     # rendering graph layout
     graph_layout = nx.multipartite_layout(dag_graph, subset_key="layer")

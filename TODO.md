@@ -31,6 +31,7 @@
   or via a dedicated `SampleValidator` processor.
 * URGENT : make feature extraction order cache-efficient (using a tree iterator)
 * URGENT : rename "pickle per file" to "split-pickle"
+* Make a recipe for resampling (maybe also think about some helpful API elements for this)
 
 # Future implementation Notes
 
