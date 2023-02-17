@@ -4,11 +4,10 @@ import pickle
 from collections import defaultdict
 from csv import Dialect
 from pathlib import Path
-from typing import Optional, Union, TextIO, Dict, Any, BinaryIO, Set, TYPE_CHECKING
-
-from typing_extensions import Literal
+from typing import Optional, TextIO, Dict, Any, BinaryIO, Set, TYPE_CHECKING
 
 from .dataset import Sample
+from .types import StorageIndexing, FeatureName, SampleID
 
 if TYPE_CHECKING:
     try:
@@ -16,24 +15,20 @@ if TYPE_CHECKING:
     except ImportError:
         pass
 
-StorageIndexing = Literal["feature", "sample"]
-Feature = str
-SampleID = Union[str, int]
-
 
 class BaseStorage:
 
     def __init__(self, indexing: StorageIndexing):
         self.indexing = indexing
-        self._data: Dict[SampleID, Dict[Feature, Any]] = defaultdict(dict)
-        self._features: Set[Feature] = set()
+        self._data: Dict[SampleID, Dict[FeatureName, Any]] = defaultdict(dict)
+        self._features: Set[FeatureName] = set()
 
     def store_feat(self, feature: str, data: Dict[SampleID, Any]):
         self._features.add(feature)
         for sample_id, value in data.items():
             self._data[sample_id][feature] = value
 
-    def store_sample(self, sample: Sample, data: Dict[Feature, Any]):
+    def store_sample(self, sample: Sample, data: Dict[FeatureName, Any]):
         self._features.update(set(data.keys()))
         self._data[sample.id] = data
 
@@ -96,7 +91,7 @@ class SplitPickleStorage(BaseStorage):
         self.folder = output_folder
         self.streaming = streaming
 
-    def store_sample(self, sample: Sample, data: Dict[Feature, Any]):
+    def store_sample(self, sample: Sample, data: Dict[FeatureName, Any]):
         super().store_sample(sample, data)
         if self.indexing == "sample" and self.streaming:
             self.flush()
@@ -139,4 +134,4 @@ class DataFrameStorage(BaseStorage):
 
 
 class HDF5Storage(BaseStorage):
-    pass
+    pass # TODO

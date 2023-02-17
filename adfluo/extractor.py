@@ -8,8 +8,9 @@ from .dataset import DatasetLoader, Sample, ListLoader
 from .exceptions import DuplicateSampleError
 from .extraction_graph import ExtractionDAG, FeatureName, FeatureNode
 from .pipeline import ExtractionPipeline
-from .storage import BaseStorage, StorageIndexing, CSVStorage, PickleStorage, DataFrameStorage, JSONStorage, \
+from .storage import BaseStorage, CSVStorage, PickleStorage, DataFrameStorage, JSONStorage, \
     SplitPickleStorage
+from .types import StorageIndexing
 from .utils import extraction_policy, logger
 
 ExtractionOrder = Literal["feature", "sample"]

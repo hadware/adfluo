@@ -8,13 +8,10 @@ from .dataset import DatasetLoader, Sample
 from .exceptions import DuplicateSampleError, BadSampleException
 from .processors import BatchProcessor, SampleProcessor, SampleInputProcessor, SampleFeatureProcessor, Input
 from .utils import extraction_policy
+from .types import FeatureName, SampleID, SampleData
 
 if TYPE_CHECKING:
     from .pipeline import ExtractionPipeline
-
-SampleID = str
-FeatureName = str
-SampleData = Any
 
 
 class BaseGraphNode(metaclass=ABCMeta):
@@ -108,7 +105,7 @@ class CachedNode(BaseGraphNode, metaclass=ABCMeta):
         self._samples_cache_hits = dict()
 
     def __getitem__(self, sample: Sample) -> Sample:
-        # if node has no children or one children, or if cache is disabled,
+        # if node has no children or one child, or if cache is disabled,
         # bypass the cache mechanism
         if len(self.children) <= 1 or extraction_policy.no_cache:
             return self.compute_sample(sample)
@@ -116,11 +113,9 @@ class CachedNode(BaseGraphNode, metaclass=ABCMeta):
         try:
             return self.from_cache(sample)
         except KeyError:
-            pass
-
-        sample_data = self.compute_sample(sample)
-        self.to_cache(sample, sample_data)
-        return sample_data
+            sample_data = self.compute_sample(sample)
+            self.to_cache(sample, sample_data)
+            return sample_data
 
 
 class SampleProcessorNode(CachedNode):
@@ -254,6 +249,16 @@ class RootNode(BaseGraphNode):
 
 
 class ExtractionDAG:
+    """
+    A DAG that stores the computation graph for all extracted features.
+    It has a unique root node, to which all ``InputNode``'s are connected.
+    The leaves of this DAG are all ``FeatureNode``.
+
+    The extraction DAG works in "pull" mode: a sample is given to a ``FeatureNode``,
+    which will ask its parent node for their output for that one sample, and then
+    that node will then in turn ask its parent node (and so on recursively), and then
+    run its computation.
+    """
 
     def __init__(self):
         # stores all the processing (input, feature and processor) nodes from
