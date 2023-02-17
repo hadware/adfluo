@@ -48,7 +48,7 @@ def test_fun_hash():
         return param + 2
 
     assert F(a) == F(a)
-    assert F(a) == F(c)
+    assert F(a) != F(c)
     assert F(a) != F(b)
 
 

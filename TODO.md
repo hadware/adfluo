@@ -31,6 +31,7 @@
   or via a dedicated `SampleValidator` processor.
 * URGENT : make feature extraction order cache-efficient (using a tree iterator)
 * URGENT : rename "pickle per file" to "split-pickle"
+* Use PyCairo to draw the processor graph
 
 # Future implementation Notes
 

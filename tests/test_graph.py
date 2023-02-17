@@ -19,7 +19,7 @@ def test_two_pipeline_parallel():
     assert dag.features == {"feat_b", "feat_d"}
     assert dag.inputs == {"input_d", "input_b"}
     assert dag.feature_nodes["feat_b"].parents[0].processor == F(b)
-    assert dag.feature_nodes["feat_d"].parents[0].processor == F(c)
+    assert dag.feature_nodes["feat_d"].parents[0].processor == F(d)
 
 
 def test_two_pipelines_simple_merge():

@@ -80,11 +80,12 @@ def plot_dag(dag: Union['ExtractionPipeline', 'ExtractionDAG'],
         if output_type is Any:
             output_type = None
         dag_graph.add_edges_from(product([node.ancestor_hash()],
-                                        [child.ancestor_hash() for child in node.children]),
-                                output_type=output_type)
+                                         [child.ancestor_hash() for child in node.children]),
+                                 output_type=output_type)
 
     # rendering graph layout
-    graph_layout = nx.multipartite_layout(dag_graph, subset_key="layer")
+    graph_layout = nx.multipartite_layout(dag_graph, subset_key="layer",
+                                          scale=3)
 
     # building labels and labels repositioning (under or over the node)
     label_dict = {node.ancestor_hash(): str(node) for node in all_nodes}
@@ -97,7 +98,7 @@ def plot_dag(dag: Union['ExtractionPipeline', 'ExtractionDAG'],
             labels_layout[k] = (v[0], v[1] - 0.1)
 
     # finding maximum width of DAG using maximum number of nodes per layer
-    dag_width = max(Counter(node.depth for node in all_nodes))
+    dag_width = max(Counter(node.depth for node in all_nodes).values())
     dag_depth = max(node.depth for node in all_nodes)
 
     # building node colors

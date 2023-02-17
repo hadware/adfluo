@@ -87,8 +87,6 @@ class PickleStorage(BaseStorage):
 
 
 class SplitPickleStorage(BaseStorage):
-    # TODO
-    #  - add argument "stream" that forces it to dump to file after each storingl
 
     def __init__(self,
                  indexing: StorageIndexing,
