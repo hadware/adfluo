@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>How-To &mdash; adfluo 0.1.0 documentation</title>
@@ -14,7 +14,9 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -27,11 +29,15 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> adfluo
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            adfluo
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -71,8 +77,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>How-To</li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">How-To</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/how_tos.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -83,10 +89,10 @@
            <div itemprop="articleBody">
              
   <section id="how-to">
-<span id="id1"></span><h1>How-To<a class="headerlink" href="#how-to" title="Permalink to this headline"></a></h1>
+<span id="id1"></span><h1>How-To<a class="headerlink" href="#how-to" title="Permalink to this heading"></a></h1>
 <p>This section is a list of miscellaneous task-oriented tutorials for specific usages of <code class="docutils literal notranslate"><span class="pre">adfluo</span></code></p>
 <section id="dealing-with-large-datasets">
-<h2>Dealing with large datasets<a class="headerlink" href="#dealing-with-large-datasets" title="Permalink to this headline"></a></h2>
+<h2>Dealing with large datasets<a class="headerlink" href="#dealing-with-large-datasets" title="Permalink to this heading"></a></h2>
 <p>This tutorial is aimed relevant if you’re planning on using <code class="docutils literal notranslate"><span class="pre">adfluo</span></code> to extract feature from large datasets and extraction pipelines that:</p>
 <ul class="simple">
 <li><p>have samples that require a large amount of memory to be processed
@@ -99,7 +105,7 @@ your computer’s memory (e.g: a myriad of small images)</p></li>
 <p>What follows is some advice on best to use <code class="docutils literal notranslate"><span class="pre">adfluo</span></code> to prevent your feature computation code from
 eating all of your RAM.</p>
 <section id="make-data-loading-as-lazy-as-possible">
-<h3>Make data loading as lazy as possible<a class="headerlink" href="#make-data-loading-as-lazy-as-possible" title="Permalink to this headline"></a></h3>
+<h3>Make data loading as lazy as possible<a class="headerlink" href="#make-data-loading-as-lazy-as-possible" title="Permalink to this heading"></a></h3>
 <p>If your samples contain large files (for instance, a 2h long WAV audio file),
 you should probably make the sample data loading as lazy as possible. This
 means that the sample instance only contains a reference to the actual data
@@ -127,7 +133,7 @@ that is to be processed:</p>
 </div>
 </section>
 <section id="use-sample-wise-extraction-order">
-<h3>Use sample-wise extraction order<a class="headerlink" href="#use-sample-wise-extraction-order" title="Permalink to this headline"></a></h3>
+<h3>Use sample-wise extraction order<a class="headerlink" href="#use-sample-wise-extraction-order" title="Permalink to this heading"></a></h3>
 <p>By default, to keep a cleaner output, <code class="docutils literal notranslate"><span class="pre">adfluo</span></code>’s extraction order is <em>feature-wise</em>, meaning that
 <code class="docutils literal notranslate"><span class="pre">adfluo</span></code> will extract <code class="docutils literal notranslate"><span class="pre">feat_A</span></code> for <strong>all the samples</strong> in the dataset, then
 proceed to do the same for <code class="docutils literal notranslate"><span class="pre">feat_b</span></code> and so on. This is made as efficient as possible (by computing
@@ -149,7 +155,7 @@ stick to feature-wise extraction order.</p>
 </div>
 </section>
 <section id="enable-streaming-for-the-output-s-storage">
-<h3>Enable streaming for the output’s storage<a class="headerlink" href="#enable-streaming-for-the-output-s-storage" title="Permalink to this headline"></a></h3>
+<h3>Enable streaming for the output’s storage<a class="headerlink" href="#enable-streaming-for-the-output-s-storage" title="Permalink to this heading"></a></h3>
 <p>If both the input data and the extracted features are large, it’s best to use all of
 the aforementioned tricks, plus this one. This only works if you’re storing
 your extracted features in the “1-pickle-per-file” output or the HDF5 format.</p>
@@ -160,7 +166,7 @@ your extracted features in the “1-pickle-per-file” output or the HDF5 format
 </div>
 </section>
 <section id="disable-any-form-of-caching">
-<h3>Disable any form of caching<a class="headerlink" href="#disable-any-form-of-caching" title="Permalink to this headline"></a></h3>
+<h3>Disable any form of caching<a class="headerlink" href="#disable-any-form-of-caching" title="Permalink to this heading"></a></h3>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>While all of the previous solutions had no impact on performance,
@@ -177,11 +183,11 @@ pipeline. Enable it by setting the <code class="docutils literal notranslate"><s
 </section>
 </section>
 <section id="picking-the-right-storage-format">
-<h2>Picking the right storage format<a class="headerlink" href="#picking-the-right-storage-format" title="Permalink to this headline"></a></h2>
+<h2>Picking the right storage format<a class="headerlink" href="#picking-the-right-storage-format" title="Permalink to this heading"></a></h2>
 <p>TODO</p>
 </section>
 <section id="sharing-your-extraction-pipelines">
-<h2>Sharing your extraction pipelines<a class="headerlink" href="#sharing-your-extraction-pipelines" title="Permalink to this headline"></a></h2>
+<h2>Sharing your extraction pipelines<a class="headerlink" href="#sharing-your-extraction-pipelines" title="Permalink to this heading"></a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
 </pre></div>
 </div>
