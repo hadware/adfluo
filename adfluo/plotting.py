@@ -64,6 +64,8 @@ def plot_dag(dag: Union['ExtractionPipeline', 'ExtractionDAG'],
     else:
         all_nodes = prepare_dag_nodes(dag)
 
+    all_nodes.sort(key=lambda node: node.depth)
+
     # creating a graph, and adding all nodes to the graph, using their depth as
     # a layer
     dag_graph = nx.DiGraph()

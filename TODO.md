@@ -32,6 +32,7 @@
 * URGENT : make feature extraction order cache-efficient (using a tree iterator)
 * URGENT : rename "pickle per file" to "split-pickle"
 * Use PyCairo to draw the processor graph
+* Make a recipe for resampling (maybe also think about some helpful API elements for this)
 
 # Future implementation Notes
 
