@@ -1,6 +1,7 @@
 [project]
 name = "adfluo"
 readme = "README.md"
+version = "0.1.0"
 description = 'Pipeline-oriented feature extraction for multimodal datasets'
 authors = [
     { name = "Hadrien Titeux", email = "hadrien.titeux@ens.psl.eu" },
@@ -17,11 +18,14 @@ classifiers = [
     'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9'
 ]
-dynamic = ["dependencies", "version"]
+dependencies = [
+    "tqdm",
+    "dataclasses; python_version <'3.7'",
+    "sortedcontainers>=2.3.0",
+    "typing-extensions"]
 
 [project.optional-dependencies]
-plot = ["matplotlib",
-    "networkX"]
+plot = ["matplotlib", "networkX"]
 tests = ["pytest",
     "pandas",
     "h5py",
@@ -32,13 +36,6 @@ docs = ["sphinx", "sphinx_rtd_theme"]
 [build-system]
 requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
-
-[tool.setuptools.dynamic]
-dependencies = [
-    "tqdm",
-    "dataclasses; python_version <'3.7'",
-    "sortedcontainers>=2.3.0",
-    "typing-extensions"]
 
 [tool.setuptools.packages.find]
 where = ["."]
