@@ -103,9 +103,62 @@
 <span id="id1"></span><h1>User Guide<a class="headerlink" href="#user-guide" title="Permalink to this heading"></a></h1>
 <section id="datasets">
 <h2>Datasets<a class="headerlink" href="#datasets" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">DatasetLoader</span></code> are a very light abstraction from <code class="docutils literal notranslate"><span class="pre">adfluo</span></code>, largely
+inspired by Pytorch’s <a class="reference external" href="https://pytorch.org/docs/stable/data.html">Dataloaders</a> .</p>
+<p>Their goal is to provide an interface by which <code class="docutils literal notranslate"><span class="pre">adfluo</span></code> can:</p>
+<ul class="simple">
+<li><p>know the number of samples in your dataset, through the <code class="docutils literal notranslate"><span class="pre">__len__</span></code> magic method.</p></li>
+<li><p>load the samples of your dataset (one-by-one), through the <code class="docutils literal notranslate"><span class="pre">__iter___</span></code> magic method.</p></li>
+</ul>
+<p>Everything else is up to you.</p>
+<p>The samples your <code class="docutils literal notranslate"><span class="pre">DatasetLoader</span></code> loads contain the “input” data for your pipeline. There are
+two basic things to understand about samples:</p>
+<ul class="simple">
+<li><p>they can contain any data you want, but any data they contain should be accessible using a string identifier, through
+the <code class="docutils literal notranslate"><span class="pre">__getitem__</span></code> method.</p></li>
+<li><p>all of your dataset’s samples should have a unique string identifier</p></li>
+</ul>
 <section id="implementing-your-own-datasetloader-and-samples">
 <h3>Implementing your own DatasetLoader and Samples<a class="headerlink" href="#implementing-your-own-datasetloader-and-samples" title="Permalink to this heading"></a></h3>
-<p>TODO</p>
+<p>Let’s say we have a dataset containing audio files and a corresponding transcription. They are stored
+using the following file hierarchy:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>dataset/
+├── audio
+│   ├── sample_1.flac
+│   ├── sample_2.flac
+│   └── sample_3.flac
+└── transcripts
+    ├── transcript_1.txt
+    ├── transcript_2.txt
+    └── transcript_3.txt
+</pre></div>
+</div>
+<p>For each sample, we’d like to load both the audio and its transcript, as a string.
+First, let’s implement our own <code class="docutils literal notranslate"><span class="pre">Sample</span></code> class</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">adfluo</span> <span class="kn">import</span> <span class="n">Sample</span>
+<span class="kn">import</span> <span class="nn">librosa</span>
+
+<span class="k">class</span> <span class="nc">TranscriptedAudioSample</span><span class="p">(</span><span class="n">Sample</span><span class="p">):</span>
+
+    <span class="c1"># init method can be whatever you want</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">audio_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">transcript_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">audio_path</span> <span class="o">=</span> <span class="n">audio_path</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">trancript_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">trancript_file</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">transcript</span> <span class="o">=</span> <span class="n">trancript_file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+
+    <span class="c1"># has to be overriden, and must return a unique id (per sample)</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">audio_path</span><span class="o">.</span><span class="n">stem</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">data_name</span> <span class="o">==</span> <span class="s2">&quot;audio&quot;</span><span class="p">:</span>
+            <span class="c1"># we load the audio, and return an (audio_array, sample_rate) tuple</span>
+            <span class="n">audio_array</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">librosa</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">audio_path</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">data_name</span> <span class="o">=</span> <span class="s2">&quot;transcript&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">transcript</span>
+</pre></div>
+</div>
 </section>
 <section id="using-python-primitives-as-a-dataset">
 <h3>Using Python primitives as a Dataset<a class="headerlink" href="#using-python-primitives-as-a-dataset" title="Permalink to this heading"></a></h3>

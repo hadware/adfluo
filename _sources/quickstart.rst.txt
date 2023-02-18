@@ -132,10 +132,10 @@ to it:
         Input("text") >> split_text >> count_words >> Feat("word_count")
     )
     extractor.add_extraction(
-        Input("text") >> split_text >> PartOfSpeech("verb") >> count_words >> Feat("verbs_count")
+        Input("text") >> split_text >> PartOfSpeech(word_type="verb") >> count_words >> Feat("verbs_count")
     )
     extractor.add_extraction(
-        Input("text") >> split_text >> PartOfSpeech("noun") >> count_words >> Feat("nouns_count")
+        Input("text") >> split_text >> PartOfSpeech(word_type="noun") >> count_words >> Feat("nouns_count")
     )
 
 Now let's proceed to audio processors used to compute the audio duration, spoken time ratio, and average energy.
