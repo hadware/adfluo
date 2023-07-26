@@ -2,7 +2,7 @@ import sys
 from abc import ABC, abstractmethod
 from dis import get_instructions
 from inspect import signature
-from typing import Any, List, Tuple, Callable, TYPE_CHECKING, Hashable, Optional, Union, Set
+from typing import Any, List, Tuple, Callable, TYPE_CHECKING, Hashable, Optional, Union, Set, Iterable
 
 from sortedcontainers import SortedDict
 
@@ -60,7 +60,6 @@ class ProcessorBase(ABC):
     @abstractmethod
     def output_type(self):
         pass
-
 
     @abstractmethod
     def process(self, *args) -> Any:
@@ -159,7 +158,6 @@ class SampleProcessor(ProcessorBase):
             return Any
 
 
-
 class FunctionWrapperMixin:
     """Mixin class for processors that wrap a function"""
 
@@ -202,6 +200,41 @@ class FunctionWrapperProcessor(FunctionWrapperMixin, SampleProcessor):
 
 F = FunctionWrapperProcessor
 F.__doc__ = FunctionWrapperProcessor.__doc__
+
+
+class ListWrapperProcessor(SampleProcessor):
+    # TODO: double check and write some tests
+
+    def __init__(self, proc: SampleProcessor):
+        super().__init__()
+        self.proc = proc
+
+    def __repr__(self):
+        return f"<{str(self)}>"
+
+    def __str__(self):
+        return f"L({str(self.proc)})"
+
+    def __hash__(self):
+        return hash((self.__class__, self.proc))
+
+    @property
+    def nb_args(self):
+        return 1
+
+    @property
+    def output_type(self):
+        try:
+            return List[self.process.proc["return"]]
+        except KeyError:
+            return Any
+
+    def process(self, arg: Iterable[Any]) -> List[Any]:
+        return [self.proc(self._current_sample, (sub_sample,)) for sub_sample in arg]
+
+
+L = ListWrapperProcessor
+L.__doc__ = ListWrapperProcessor.__doc__
 
 
 class BatchProcessor(SampleProcessor):
@@ -265,6 +298,7 @@ class SampleFeatureProcessor(SampleProcessor):
 
     def __str__(self):
         return f"Feat({self.feat_name})"
+
 
 Feat = SampleFeatureProcessor
 Feat.__doc__ = SampleInputProcessor.__doc__
