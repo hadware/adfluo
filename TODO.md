@@ -31,6 +31,7 @@
   or via a dedicated `SampleValidator` processor.
 * URGENT : make feature extraction order cache-efficient (using a tree iterator)
 * URGENT : rename "pickle per file" to "split-pickle"
+* URGENT?: add support for automatic list-of-items processing via *ProcessorInstance() (overloading __iter__ to return a wrapped processor)
 * Use PyCairo to draw the processor graph
 * Make a recipe for resampling (maybe also think about some helpful API elements for this)
 

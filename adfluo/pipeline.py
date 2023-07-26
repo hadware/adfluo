@@ -60,7 +60,7 @@ class ExtractionPipeline:
 
     def append(self, proc: ProcessorBase):
         new_node = wrap_processor(proc)
-        # extraction DAG has not node: new dag!
+        # extraction DAG has no node: new dag!
         if self.nb_inputs == 0:
             self.inputs = [new_node]
 
@@ -81,6 +81,7 @@ class ExtractionPipeline:
         self.all_nodes.append(new_node)
 
     def concatenate(self, pipeline: 'ExtractionPipeline'):
+        """Appends (in place) another pipeline to the current pipeline instance"""
         if self.nb_outputs == pipeline.nb_inputs:
             for right_out, left_in in zip(self.outputs, pipeline.inputs):
                 right_out.children = [left_in]
@@ -91,7 +92,7 @@ class ExtractionPipeline:
             for i in pipeline.inputs:
                 i.parents = [self.outputs[0]]
 
-        elif pipeline.nb_inputs == 1 and self.outputs > 1:
+        elif pipeline.nb_inputs == 1 and self.nb_outputs > 1:
             # TODO: better error
             assert self.nb_outputs == pipeline.inputs[0].processor.nb_args
             pipeline.inputs[0].parents = self.outputs
@@ -101,13 +102,15 @@ class ExtractionPipeline:
         self.outputs = pipeline.outputs
         self.all_nodes += pipeline.all_nodes
 
-    def merge_proc(self, proc: ProcessorBase):
+    def add_parallel_proc(self, proc: ProcessorBase):
+        """Adds a new processor that processes in parallel to the current pipeline instance"""
         new_node = wrap_processor(proc)
         self.inputs.append(new_node)
         self.outputs.append(new_node)
         self.all_nodes.append(new_node)
 
-    def merge_pipeline(self, pipeline: 'ExtractionPipeline'):
+    def add_parallel_pipeline(self, pipeline: 'ExtractionPipeline'):
+        """Adds a new pipeline that processes in parallel to the current pipeline instance"""
         self.inputs += pipeline.inputs
         self.outputs += pipeline.outputs
         self.all_nodes += pipeline.all_nodes
@@ -123,9 +126,9 @@ class ExtractionPipeline:
 
     def __add__(self, other: PipelineElement):
         if isinstance(other, ProcessorBase):
-            self.merge_proc(other)
+            self.add_parallel_proc(other)
         elif isinstance(other, ExtractionPipeline):
-            self.merge_pipeline(other)
+            self.add_parallel_pipeline(other)
         else:
             raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
         return self

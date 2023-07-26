@@ -114,9 +114,9 @@ class ProcessorBase(ABC):
         new_pipeline = ExtractionPipeline()
         new_pipeline.append(self)
         if isinstance(other, ProcessorBase):
-            new_pipeline.merge_proc(other)
+            new_pipeline.add_parallel_proc(other)
         elif isinstance(other, ExtractionPipeline):
-            new_pipeline.merge_pipeline(other)
+            new_pipeline.add_parallel_pipeline(other)
         else:
             raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
         return new_pipeline

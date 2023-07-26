@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Iterable, List, Dict, Any, Union
 
-
+SampleId
 class Sample(ABC):
 
     def __new__(cls, *args, **kwargs):
@@ -11,14 +11,14 @@ class Sample(ABC):
 
     @property
     @abstractmethod
-    def id(self):
+    def id(self) -> Union[str, int]:
         raise NotImplementedError()
 
     def __hash__(self):
         return hash(self.id)
 
     @abstractmethod
-    def __getitem__(self, data_name: str):
+    def __getitem__(self, data_name: str) -> Any:
         """This method should be overridden. Depending on the data that is being
         queried, returns the right value"""
         raise NotImplementedError()
