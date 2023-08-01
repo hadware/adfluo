@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Iterable, List, Dict, Any, Union
 
-SampleId
 class Sample(ABC):
 
     def __new__(cls, *args, **kwargs):

@@ -34,6 +34,7 @@
 * URGENT?: add support for automatic list-of-items processing via *ProcessorInstance() (overloading __iter__ to return a wrapped processor)
 * Use PyCairo to draw the processor graph
 * Make a recipe for resampling (maybe also think about some helpful API elements for this)
+* EASY: add custom storage that can be passed to `Feat` (callable with signature (feat_name, sample_id, data: Any))
 
 # Future implementation Notes
 

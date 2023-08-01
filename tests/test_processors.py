@@ -4,7 +4,7 @@ import pytest
 from sortedcontainers import SortedDict
 
 from adfluo.dataset import DictSample
-from adfluo.processors import param, SampleProcessor, F, Input, Feat
+from adfluo.processors import param, SampleProcessor, F, Input, Feat, ListWrapperProcessor
 
 
 def test_proc_params():
@@ -101,5 +101,19 @@ def test_proc_args():
             return a + b
 
     assert SumProc()(None, (1, 2)) == 3
+
+
+def test_list_processors():
+    def f(a: int) -> int:
+        return a ** 2
+
+    class SquareProc(SampleProcessor):
+
+        def process(self, a: int) -> int:
+            return a ** 2
+
+    assert ListWrapperProcessor(F(f))(None, ([1, 2, 3],)) == [1, 4, 9]
+    assert ListWrapperProcessor(SquareProc())(None, ([1, 2, 3],)) == [1, 4, 9]
+    assert ListWrapperProcessor(F(f)) == ListWrapperProcessor(F(f))
 
 # TODO : unittest BatchProcessors
