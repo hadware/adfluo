@@ -7,8 +7,8 @@ from tqdm import tqdm
 from .dataset import DatasetLoader, Sample
 from .exceptions import DuplicateSampleError, BadSampleException
 from .processors import BatchProcessor, SampleProcessor, SampleInputProcessor, SampleFeatureProcessor, Input
-from .utils import extraction_policy
 from .types import FeatureName, SampleID, SampleData
+from .utils import extraction_policy
 
 if TYPE_CHECKING:
     from .pipeline import ExtractionPipeline
@@ -279,6 +279,18 @@ class ExtractionDAG:
     def features(self) -> Set[str]:
         return set(self.feature_nodes.keys())
 
+    @features.setter
+    def features(self, feats: Iterable[str]):
+        feats = set(feats)
+        removed_features = {f for f in self.features if f not in feats}
+        for feat in removed_features:
+            feat_node = self.feature_nodes[feat]
+            for parent in feat_node.parents:
+                parent.children.remove(feat_node)
+            del self.feature_nodes[feat]
+
+        self.prune_orphaned_branches()
+
     @property
     def inputs(self) -> Set[str]:
         return set(input_node.data_name for input_node in self.root_node.children)
@@ -368,7 +380,16 @@ class ExtractionDAG:
 
     def prune_orphaned_branches(self):
         """Removes all branches that don't have a featurenode leaf"""
-        pass # TODO
+        # TODO: add tests for this
+        stack = [node for node in self.nodes
+                 if not isinstance(node, FeatureNode) and len(node.children) == 0]
+        while stack:
+            node = stack.pop()
+            self.nodes.remove(node)
+            for parent in node.parents:
+                parent.children.remove(node)
+                if not parent.children:
+                    stack.append(parent)
 
     def compute_feature_order(self):
         # sorting feature node by increasing depth

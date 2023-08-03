@@ -163,11 +163,8 @@ class ExtractCommand(Command):
             exit()
 
         # keeping only features that are specified in `feats`
-        feats = set(feats)
         if feats:
-            extractor.extraction_DAG.feature_nodes = {feat: feat_node for feat, feat_node
-                                                      in extractor.extraction_DAG.feature_nodes.items()
-                                                      if feat in feats}
+            extractor.extraction_DAG.features = feats
 
         # wrapping the dataset with a subsetloader if only a subset of samples has been specified
         if samples:
