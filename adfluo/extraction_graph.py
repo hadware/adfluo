@@ -366,6 +366,10 @@ class ExtractionDAG:
 
         self._needs_dependency_solving = False
 
+    def prune_orphaned_branches(self):
+        """Removes all branches that don't have a featurenode leaf"""
+        pass # TODO
+
     def compute_feature_order(self):
         # sorting feature node by increasing depth
         sorted_feature_nodes = sorted(self.feature_nodes.values(),

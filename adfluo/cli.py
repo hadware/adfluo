@@ -12,7 +12,7 @@ from tqdm import tqdm
 from typing_extensions import Literal
 
 from adfluo import DatasetLoader, Extractor, Sample
-from adfluo.dataset import ListLoader
+from adfluo.dataset import ListLoader, SubsetLoader
 from .utils import logger, extraction_policy
 
 
@@ -159,8 +159,19 @@ class ExtractCommand(Command):
                               f"when asked to provide input '{input_name}'")
                         error_count += 1
 
-            print(f"Got {error_count} when testing {len(dataset)} samples from {dataset}")
+            print(f"Got {error_count} errors when testing {len(dataset)} samples from {dataset}")
             exit()
+
+        # keeping only features that are specified in `feats`
+        feats = set(feats)
+        if feats:
+            extractor.extraction_DAG.feature_nodes = {feat: feat_node for feat, feat_node
+                                                      in extractor.extraction_DAG.feature_nodes.items()
+                                                      if feat in feats}
+
+        # wrapping the dataset with a subsetloader if only a subset of samples has been specified
+        if samples:
+            dataset = SubsetLoader(dataset, samples)
 
         if storage_format == "csv":
             extraction_method = extractor.extract_to_csv

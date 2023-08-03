@@ -1,6 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Iterable, List, Dict, Any, Union
 
+from adfluo.types import SampleID
+
+
 class Sample(ABC):
 
     def __new__(cls, *args, **kwargs):
@@ -68,3 +71,20 @@ class ListLoader(DatasetLoader):
 
     def __iter__(self):
         return iter(self._samples)
+
+
+class SubsetLoader(DatasetLoader):
+    """Dataset wrapper that keeps only a definite subset of the original dataset's
+    samples"""
+
+    def __init__(self, dataset: DatasetLoader, kept_samples: List[SampleID]):
+        self.dataset = dataset
+        self.kept_samples = set(kept_samples)
+
+    def __len__(self):
+        return len(self.kept_samples)
+
+    def __iter__(self):
+        for sample in self.dataset:
+            if sample.id in self.kept_samples:
+                yield sample
