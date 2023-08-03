@@ -138,9 +138,12 @@ class SampleProcessorNode(CachedNode):
 
         try:
             return self.processor(sample, parents_output)
-        except Exception:
-            self._failed_samples.add(sample.id)
-            raise BadSampleException(sample)
+        except Exception as err:
+            if extraction_policy.skip_errors:
+                self._failed_samples.add(sample.id)
+                raise BadSampleException(sample)
+            else:
+                raise err
 
     def __str__(self):
         return str(self.processor)

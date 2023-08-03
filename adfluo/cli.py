@@ -1,13 +1,17 @@
 import json
 import logging
+import os
+import sys
 from argparse import ArgumentParser
 from collections import Counter
+from importlib import import_module
 from pathlib import Path
 from typing import Optional, List, Dict, Union
 
+from tqdm import tqdm
 from typing_extensions import Literal
 
-from adfluo import DatasetLoader, Extractor
+from adfluo import DatasetLoader, Extractor, Sample
 from adfluo.dataset import ListLoader
 from .utils import logger, extraction_policy
 
@@ -21,10 +25,12 @@ def import_class(class_path: str) -> Optional[Union[Extractor, DatasetLoader, Li
     assert len(class_path.split(".")) > 1
     *module_path, obj_name = class_path.split(".")
     module_path = ".".join(module_path)
+
+    sys.path.append(os.getcwd())
     try:
-        mod = __import__(module_path, fromlist=[obj_name])
+        mod = import_module(module_path)
         obj = getattr(mod, obj_name)
-    except (ImportError, AttributeError):
+    except (ImportError, AttributeError) as err:
         return None
     else:
         return obj
@@ -40,7 +46,7 @@ def load_dataset(dataset_name: str) -> DatasetLoader:
             return ListLoader(json_data)
 
     else:
-        obj = import_class(args.extractor_or_dataloader)
+        obj = import_class(dataset_name)
         if isinstance(obj, list):
             return ListLoader(obj)
         elif isinstance(obj, DatasetLoader):
@@ -81,8 +87,13 @@ class ExtractCommand(Command):
                             help="If the dataset argument is a class, "
                                  "these are passed as the class's "
                                  "instantiation parameters")
-        parser.add_argument("--output", "-o", type=Path, required=True,
+        action = parser.add_mutually_exclusive_group(required=True)
+        action.add_argument("--output", "-o", type=Path,
                             help="Output file path or folder (depending on format)")
+        action.add_argument("--test_samples",
+                            action="store_true",
+                            help="Just test that samples all can all provide "
+                                 "the required input data")
         parser.add_argument("--feats", "-f", nargs="*", type=str,
                             help="Extract only for the specified features")
         parser.add_argument("--samples", "-s", nargs="*", type=str,
@@ -94,23 +105,19 @@ class ExtractCommand(Command):
         parser.add_argument("--order",
                             choices=["feature", "sample"],
                             default="feature",
-                            help="Extraction order (feature-wise or sample-wise")
+                            help="Extraction order (feature-wise or sample-wise)")
         parser.add_argument("--skip_errors",
                             action="store_true",
-                            help="Errors while computing a feature for a sample "
-                                 "are ignored.")
+                            help="Errors while computing a feature for a sample are ignored.")
         parser.add_argument("--no_caching",
                             action="store_true",
                             help="Disable any form of caching (may impact performances "
                                  "but prevents memory overflows")
         parser.add_argument("--storage_format", "-sf", type=str,
-                            choices=["csv", "df", "pickle", "split-pickle", "hdf5"],
+                            choices=["csv", "json", "df", "pickle", "split-pickle", "hdf5"],
                             default="pickle",
                             help="Storage format for the extracted features")
-        parser.add_argument("--test_samples",
-                            action="store_true",
-                            help="Just test that samples all can all provide "
-                                 "the required input data")
+
         parser.add_argument("--hide_progress",
                             action="store_true",
                             help="Don't show progress bars during the extraction")
@@ -127,21 +134,33 @@ class ExtractCommand(Command):
              order: Literal["feature", "sample"],
              skip_errors: bool,
              no_caching: bool,
-             storage_format: Literal["csv", "df", "pickle", "split-pickle", "hdf5"],
+             storage_format: Literal["csv", "json", "df", "pickle", "split-pickle", "hdf5"],
              test_samples: bool,
              hide_progress: bool,
              **kwargs):
 
         extractor: Extractor = import_class(extractor)
         if not isinstance(extractor, Extractor):
-            raise CLIParametersError(f"{args.extractor} isn't an extractor object")
+            raise CLIParametersError(f"{extractor} isn't an extractor object")
         elif extractor is None:
             raise CLIParametersError(f"Couldn't import extractor {extractor}")
 
-        dataset: DatasetLoader = load_dataset(args.dataset)
+        dataset: DatasetLoader = load_dataset(dataset)
 
         if test_samples:
-            pass  # TODO
+            error_count = 0
+            for sample in tqdm(dataset):
+                sample: Sample
+                for input_name in extractor.extraction_DAG.inputs:
+                    try:
+                        sample[input_name]
+                    except Exception as err:
+                        print(f"Got error '{type(err)} : {err}' on sample {sample.id} for "
+                              f"when asked to provide input '{input_name}'")
+                        error_count += 1
+
+            print(f"Got {error_count} when testing {len(dataset)} samples from {dataset}")
+            exit()
 
         if storage_format == "csv":
             extraction_method = extractor.extract_to_csv
@@ -173,8 +192,8 @@ class ExtractCommand(Command):
 
 
 class ShowCommand(Command):
-    COMMAND = "extract"
-    DESCRIPTION = "Command description"
+    COMMAND = "show"
+    DESCRIPTION = "Show informations about an extractor or a dataset"
 
     @staticmethod
     def init_parser(parser: ArgumentParser):
@@ -204,13 +223,13 @@ class ShowCommand(Command):
             obj = ListLoader(obj)
 
         if isinstance(obj, Extractor):
-            print(f"Info for extractor {args.extractor_or_dataloader}")
+            print(f"Info for extractor {extractor_or_dataloader}")
 
-            print(f"{len(obj.extraction_DAG.inputs)} required:")
+            print(f"{len(obj.extraction_DAG.inputs)} inputs required:")
             for input_name in obj.extraction_DAG.inputs:
                 print(f"\t- {input_name}")
 
-            print(f"{len(obj.extraction_DAG.features)} specified:")
+            print(f"{len(obj.extraction_DAG.features)} features specified:")
             for feat_name in obj.extraction_DAG.features:
                 print(f"\t- {feat_name}")
 
@@ -222,7 +241,7 @@ class ShowCommand(Command):
             sample_ids = [sample.id for sample in obj]
             samples_counts = Counter(sample_ids)
             duplicates = sorted([sample_id
-                                 for sample_id, count in samples_counts.values()
+                                 for sample_id, count in samples_counts.items()
                                  if count > 1])
             if duplicates:
                 print(f"WARNING: The following samples ids are duplicate: "
@@ -242,7 +261,8 @@ for command in commands:
     parser.set_defaults(func=command.main)
     command.init_parser(parser)
 
-if __name__ == '__main__':
+
+def main():
     args = argparser.parse_args()
     logger.setLevel(logging.DEBUG if args.verbose else logging.INFO)
     # Invoking the right subfunction
@@ -252,3 +272,7 @@ if __name__ == '__main__':
     except CLIParametersError as err:
         logger.error(str(err))
         exit(1)
+
+
+if __name__ == '__main__':
+    main()

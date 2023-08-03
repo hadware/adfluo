@@ -39,11 +39,11 @@ def create_dag(extractor: Extractor):
                              >> F(lambda x: x + 1)
                              >> Feat("times_two_plus_one"))
     extractor.add_extraction((Feat("times_two_plus_one")
-                              + (Input("data_b") >> F(ordinal)))
+                              | (Input("data_b") >> F(ordinal)))
                              >> F(lambda x, y: x + y)
                              >> Feat("combined"))
     extractor.add_extraction((Feat("times_two_plus_one")
-                              + (Input("data_b") >> F(ordinal)))
+                              | (Input("data_b") >> F(ordinal)))
                              >> F(lambda x, y: x + y)
                              >> F(lambda x: x + 1) >> Feat("combined_plus_one"))
 
@@ -93,7 +93,7 @@ def test_duplicate_sample():
         def __getitem__(self, item):
             if item == "data_a":
                 return 1
-            elif item =="data_b":
+            elif item == "data_b":
                 return "a"
 
     dataset = [BadDuplicateSample() for i in range(3)]

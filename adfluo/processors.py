@@ -108,7 +108,7 @@ class ProcessorBase(ABC):
             raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
         return new_pipeline
 
-    def __add__(self, other: 'PipelineElement'):
+    def __or__(self, other: 'PipelineElement'):
         from .pipeline import (ExtractionPipeline, PIPELINE_TYPE_ERROR,
                                PipelineBuildError)
         new_pipeline = ExtractionPipeline()
@@ -141,6 +141,7 @@ class SampleProcessor(ProcessorBase):
             err = type(e)(("In processor %s, on sample %s : "
                            % (repr(self), sample.id)) +
                           str(e)).with_traceback(tb)
+            print(extraction_policy.skip_errors)
             if extraction_policy.skip_errors:
                 logger.warning("Got error in processor %s on sample %s : %s" %
                                (type(self).__name__, sample.id, str(e)))

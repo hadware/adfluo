@@ -80,8 +80,8 @@ def test_branches_merge():
     def d(arg): pass
 
     dag = ExtractionDAG()
-    dag.add_pipeline((Input("input_a") >> F(a) + Input("input_b")) >> F(b) >> F(d) >> Feat("feat_b"))
-    dag.add_pipeline((Input("input_a") >> F(a) + Input("input_b")) >> F(c) >> F(d) >> Feat("feat_c"))
+    dag.add_pipeline((Input("input_a") >> F(a) | Input("input_b")) >> F(b) >> F(d) >> Feat("feat_b"))
+    dag.add_pipeline((Input("input_a") >> F(a) | Input("input_b")) >> F(c) >> F(d) >> Feat("feat_c"))
     assert dag.features == {"feat_b", "feat_c"}
     assert dag.inputs == {"input_a", "input_b"}
     assert dag.feature_nodes["feat_b"].parents[0].processor == F(d)
@@ -104,7 +104,7 @@ def test_dependency_solving():
 
     dag = ExtractionDAG()
     dag.add_pipeline(Input("test_input") >> F(a) >> Feat("feat_a"))
-    dag.add_pipeline((Input("test_input") + Feat("feat_a")) >> F(b) >> Feat("feat_b"))
+    dag.add_pipeline((Input("test_input") | Feat("feat_a")) >> F(b) >> Feat("feat_b"))
     dag.solve_dependencies()
     assert dag.features == {"feat_b", "feat_a"}
     assert dag.inputs == {"test_input"}

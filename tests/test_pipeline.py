@@ -38,7 +38,7 @@ def test_proc_merge():
             pass
 
     a, b = A(), B()
-    a_b = a + b
+    a_b = a | b
     assert isinstance(a_b, ExtractionPipeline)
     assert len(a_b.outputs) == len(a_b.inputs) == 2
     assert a_b.outputs[0].processor is a_b.inputs[0].processor is a
@@ -60,7 +60,7 @@ def test_proc_merge_and_concatenate():
 
     a, b, c = A(), B(), C()
 
-    pipeline = (a + b) >> c
+    pipeline = (a | b) >> c
     assert isinstance(pipeline, ExtractionPipeline)
     assert len(pipeline.inputs) == 2
     assert len(pipeline.outputs) == 1
@@ -89,7 +89,7 @@ def test_proc_concatenate_merge_and_concatenate():
 
     a, b, c, d = A(), B(), C(), D()
 
-    pipeline = (d >> (a + b) >> c)
+    pipeline = (d >> (a | b) >> c)
     assert isinstance(pipeline, ExtractionPipeline)
     assert len(pipeline.inputs) == 1
     assert len(pipeline.outputs) == 1
@@ -109,7 +109,7 @@ def test_fun_merge_and_concatenate():
 
     c = lambda x, y: "4577"
 
-    pipeline = (F(a) + F(b)) >> F(c)
+    pipeline = (F(a) | F(b)) >> F(c)
     assert isinstance(pipeline, ExtractionPipeline)
     assert len(pipeline.inputs) == 2
     assert len(pipeline.outputs) == 1
@@ -131,13 +131,13 @@ def test_pipeline_io_checking():
     # checking good pipelines
     pl_good = Input("test_input") >> A() >> A() >> Feat("test_feat")
     pl_good.check()
-    pl_good_two_inputs = ((Input("test_input") >> A()) + Input("other")) >> B() >> Feat("test_feat")
+    pl_good_two_inputs = ((Input("test_input") >> A()) | Input("other")) >> B() >> Feat("test_feat")
     pl_good_two_inputs.check()
-    pl_good_two_feats = Input("test_input") >> A() >> A() >> (Feat("test_feat") + (A() >> Feat("other")))
+    pl_good_two_feats = Input("test_input") >> A() >> A() >> (Feat("test_feat") | (A() >> Feat("other")))
     pl_good_two_feats.check()
 
     # checking good pipelines
-    pl_bad_input = (Input("test_input") + A()) >> B() >> Feat("test_feat")
+    pl_bad_input = (Input("test_input") | A()) >> B() >> Feat("test_feat")
     with pytest.raises(AssertionError):
         pl_bad_input.check()
     pl_bad_input = A() >> A() >> Feat("test_feat")
@@ -149,7 +149,7 @@ def test_pipeline_io_checking():
     pl_bad_feat = Input("test_input") >> A() >> A() >> A()
     with pytest.raises(AssertionError):
         pl_bad_feat.check()
-    pl_bad_feat = Input("test_input") >> A() >> A() >> (A() + Feat("test_feat"))
+    pl_bad_feat = Input("test_input") >> A() >> A() >> (A() | Feat("test_feat"))
     with pytest.raises(AssertionError):
         pl_bad_feat.check()
 
@@ -157,7 +157,7 @@ def test_pipeline_io_checking():
 def test_pipeline_feat_input():
     def b(arg_a, arg_b): pass
 
-    pl = (Input("test_input") + Feat("feat_a")) >> F(b) >> Feat("feat_b")
+    pl = (Input("test_input") | Feat("feat_a")) >> F(b) >> Feat("feat_b")
     assert len(pl.inputs) == 2
     assert pl.inputs[0].data_name == "test_input"
     assert pl.inputs[1].feature_name == "feat_a"
@@ -170,7 +170,7 @@ def test_advanced_composite_pipeline():
     def f_3(a, b, c):
         pass
 
-    pipeline = Input("test_input") >> ((F(f) >> (F(f) + F(f))) + F(f)) >> F(f_3) >> Feat("test_feat")
+    pipeline = Input("test_input") >> ((F(f) >> (F(f) | F(f))) | F(f)) >> F(f_3) >> Feat("test_feat")
     pipeline.check()
 
 
@@ -200,7 +200,7 @@ def test_pipeline_merge():
 
     sample = {"a": 1, "b": 0}
 
-    pl = (Input("a") + (Input("b") >> F(add_one))) >> Adder() >> F(times_two) >> Feat("test_feat")
+    pl = (Input("a") | (Input("b") >> F(add_one))) >> Adder() >> F(times_two) >> Feat("test_feat")
     assert pl(sample)["test_feat"] == 4
 
 
@@ -212,5 +212,5 @@ def test_pipeline_multiple_features():
         return n * 2
 
     sample = {"n": 0}
-    pl = Input("n") >> F(add_one) >> (F(add_one) >> F(times_two) >> Feat("times_two")) + Feat("one")
+    pl = Input("n") >> F(add_one) >> (F(add_one) >> F(times_two) >> (Feat("times_two")) | Feat("one"))
     assert pl(sample) == {"times_two": 4, "one": 1}

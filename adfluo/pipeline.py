@@ -124,7 +124,7 @@ class ExtractionPipeline:
             raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
         return self
 
-    def __add__(self, other: PipelineElement):
+    def __or__(self, other: PipelineElement):
         if isinstance(other, ProcessorBase):
             self.add_parallel_proc(other)
         elif isinstance(other, ExtractionPipeline):
