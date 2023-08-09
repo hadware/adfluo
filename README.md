@@ -17,7 +17,7 @@ Adfluo makes your feature extraction code:
   a feature as a pipeline of atomic steps
 - **data scientist-friendly**: ``adfluo``'s output has a predictable structure,
   ensuring that once you've run the feature extraction, you'll be able to focus a 100%
-  on your machine learning/statistics work.
+  on your data-science/statistics work.
 - **efficient** : if different features have computation steps in common, ``adfluo``
   will do its best to compute only what is necessary, without any extra configuration.
 - **reusable**: By separating the input data from the feature computation logic,
@@ -42,10 +42,14 @@ import random
 
 # Defining our dataset as a list of dicts
 my_dataset = [
-    {"numbers" : [random.randint(1, 20) for j in range(50)]
+    {"numbers" : [random.randint(1, 20) for j in range(50)],
      "idx": i}
   for i in range(20)
 ]
+
+# TODO: examples 
+#  - mean, std dev of numbers
+#  - "relative" mean using idx
 ```
 
 ## 
