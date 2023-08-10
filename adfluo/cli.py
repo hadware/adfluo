@@ -6,7 +6,7 @@ from argparse import ArgumentParser
 from collections import Counter
 from importlib import import_module
 from pathlib import Path
-from typing import Optional, List, Dict, Union
+from typing import Optional, List, Dict, Union, Type
 
 from tqdm import tqdm
 from typing_extensions import Literal
@@ -20,7 +20,8 @@ class CLIParametersError(Exception):
     pass
 
 
-def import_class(class_path: str) -> Optional[Union[Extractor, DatasetLoader, List[Dict]]]:
+def import_obj(class_path: str) \
+        -> Optional[Union[Extractor, Type[DatasetLoader], DatasetLoader, List[Dict]]]:
     # TODO: better error
     assert len(class_path.split(".")) > 1
     *module_path, obj_name = class_path.split(".")
@@ -36,8 +37,7 @@ def import_class(class_path: str) -> Optional[Union[Extractor, DatasetLoader, Li
         return obj
 
 
-# TODO: add support for dataset_args
-def load_dataset(dataset_name: str) -> DatasetLoader:
+def load_dataset(dataset_name: str, dataset_args: Optional[List[str]]) -> DatasetLoader:
     # first trying to load from json (dataset is a path)
     dataset_path = Path(dataset_name)
     if dataset_path.is_file() and dataset_path.suffix == ".json":
@@ -46,15 +46,19 @@ def load_dataset(dataset_name: str) -> DatasetLoader:
             return ListLoader(json_data)
 
     else:
-        obj = import_class(dataset_name)
-        if isinstance(obj, list):
+        obj = import_obj(dataset_name)
+        if issubclass(obj, DatasetLoader):
+            if dataset_args is None:
+                dataset_args = []
+            return obj(*dataset_args)
+        elif isinstance(obj, list):
             return ListLoader(obj)
         elif isinstance(obj, DatasetLoader):
             return obj
         elif obj is None:
             raise CLIParametersError(f"Couldn't import any dataset with name {dataset_name}")
         else:
-            raise CLIParametersError(f"{dataset_name} isn't a valid dataset object")
+            raise CLIParametersError(f"{dataset_name} isn't a valid dataset object or class")
 
 
 class Command:
@@ -126,10 +130,10 @@ class ExtractCommand(Command):
     def main(cls,
              extractor: str,
              dataset: str,
-             dataset_args: List[str],
+             dataset_args: Optional[List[str]],
              output: Path,
-             feats: List[str],
-             samples: List[str],
+             feats: Optional[List[str]],
+             samples: Optional[List[str]],
              indexing: Literal["feature", "sample"],
              order: Literal["feature", "sample"],
              skip_errors: bool,
@@ -139,13 +143,13 @@ class ExtractCommand(Command):
              hide_progress: bool,
              **kwargs):
 
-        extractor: Extractor = import_class(extractor)
+        extractor: Extractor = import_obj(extractor)
         if not isinstance(extractor, Extractor):
             raise CLIParametersError(f"{extractor} isn't an extractor object")
         elif extractor is None:
             raise CLIParametersError(f"Couldn't import extractor {extractor}")
 
-        dataset: DatasetLoader = load_dataset(dataset)
+        dataset: DatasetLoader = load_dataset(dataset, dataset_args)
 
         if test_samples:
             error_count = 0
@@ -220,7 +224,7 @@ class ShowCommand(Command):
              output_file: Optional[Path],
              dag: bool,
              **kwargs):
-        obj = import_class(extractor_or_dataloader)
+        obj = import_obj(extractor_or_dataloader)
         if obj is None:
             logger.error(f"Couldn't import extractor or dataset class {extractor_or_dataloader}")
             exit(1)
