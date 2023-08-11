@@ -95,8 +95,12 @@ class ExtractCommand(Command):
                                  "the required input data")
         parser.add_argument("--feats", "-f", nargs="*", type=str,
                             help="Extract only for the specified features")
+        parser.add_argument("--exclude_feats", "-ef", nargs="*", type=str,
+                            help="Do not run extraction on specified features")
         parser.add_argument("--samples", "-s", nargs="*", type=str,
                             help="Extract only for the specified samples")
+        parser.add_argument("--exclude_samples", "-es", nargs="*", type=str,
+                            help="Do not run extraction on specified samples")
         parser.add_argument("--indexing",
                             choices=["feature", "sample"],
                             default="sample",
@@ -128,7 +132,9 @@ class ExtractCommand(Command):
              dataset_args: Optional[List[str]],
              output: Path,
              feats: Optional[List[str]],
+             exclude_feats: Optional[List[str]],
              samples: Optional[List[str]],
+             exclude_samples: Optional[List[str]],
              indexing: Literal["feature", "sample"],
              order: Literal["feature", "sample"],
              skip_errors: bool,
@@ -164,10 +170,15 @@ class ExtractCommand(Command):
         # keeping only features that are specified in `feats`
         if feats:
             extractor.extraction_DAG.prune_features(keep_only=feats)
+        if exclude_feats:
+            extractor.extraction_DAG.prune_features(remove=exclude_feats)
 
         # wrapping the dataset with a subsetloader if only a subset of samples has been specified
         if samples:
             dataset = SubsetLoader(dataset, samples)
+        if exclude_samples:
+            excluded_samples = set(exclude_samples)
+            dataset = SubsetLoader(dataset, [s.id for s in dataset if s.id not in excluded_samples])
 
         if storage_format == "csv":
             extraction_method = extractor.extract_to_csv
