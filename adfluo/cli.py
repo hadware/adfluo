@@ -28,13 +28,8 @@ def import_obj(class_path: str) \
     module_path = ".".join(module_path)
 
     sys.path.append(os.getcwd())
-    try:
-        mod = import_module(module_path)
-        obj = getattr(mod, obj_name)
-    except (ImportError, AttributeError) as err:
-        return None
-    else:
-        return obj
+    mod = import_module(module_path)
+    return getattr(mod, obj_name)
 
 
 def load_dataset(dataset_name: str, dataset_args: Optional[List[str]]) -> DatasetLoader:
@@ -168,7 +163,7 @@ class ExtractCommand(Command):
 
         # keeping only features that are specified in `feats`
         if feats:
-            extractor.extraction_DAG.features = feats
+            extractor.extraction_DAG.prune_features(keep_only=feats)
 
         # wrapping the dataset with a subsetloader if only a subset of samples has been specified
         if samples:

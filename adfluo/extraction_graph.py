@@ -279,18 +279,6 @@ class ExtractionDAG:
     def features(self) -> Set[str]:
         return set(self.feature_nodes.keys())
 
-    @features.setter
-    def features(self, feats: Iterable[str]):
-        feats = set(feats)
-        removed_features = {f for f in self.features if f not in feats}
-        for feat in removed_features:
-            feat_node = self.feature_nodes[feat]
-            for parent in feat_node.parents:
-                parent.children.remove(feat_node)
-            del self.feature_nodes[feat]
-
-        self.prune_orphaned_branches()
-
     @property
     def inputs(self) -> Set[str]:
         return set(input_node.data_name for input_node in self.root_node.children)
@@ -378,18 +366,46 @@ class ExtractionDAG:
 
         self._needs_dependency_solving = False
 
-    def prune_orphaned_branches(self):
-        """Removes all branches that don't have a featurenode leaf"""
-        # TODO: add tests for this
-        stack = [node for node in self.nodes
-                 if not isinstance(node, FeatureNode) and len(node.children) == 0]
+    def prune_features(self,
+                       keep_only: Optional[Iterable[str]] = None,
+                       remove: Optional[Iterable[str]] = None):
+        """Removing features from the DAG (by specifying either the ones that should be
+        removed on the ones that should be kept). This is used to optimize the extraction
+        when only certain features are needed."""
+
+        assert bool(keep_only) != bool(remove)
+        if keep_only is not None:
+            kept_features = self.features & set(keep_only)
+            removed_features = self.features - kept_features
+        else:
+            removed_features = self.features & set(remove)
+            kept_features = self.features - removed_features
+
+        # sanity measure
+        self.solve_dependencies()
+
+        # building the initial stack with all the leaf feature nodes
+        # (features that have children are omitted, they might be useful for
+        #  some kept features)
+        stack: List[BaseGraphNode] = [self.feature_nodes[feat] for feat in removed_features
+                                      if len(self.feature_nodes[feat].children) == 0]
+
+        # - all the nodes that don't have any more children are removed from the DAG
+        # - if a node is a feature node that shouldn't be removed, it's skipped
         while stack:
             node = stack.pop()
+            if isinstance(node, FeatureNode) and node.feature_name in kept_features:
+                continue
+
             self.nodes.remove(node)
             for parent in node.parents:
                 parent.children.remove(node)
                 if not parent.children:
                     stack.append(parent)
+
+        # once everything has been cleaned, removing the features from the registry:
+        for feat in removed_features:
+            del self.feature_nodes[feat]
 
     def compute_feature_order(self):
         # sorting feature node by increasing depth
@@ -405,6 +421,8 @@ class ExtractionDAG:
     def extract_feature_wise(self, feature_name: str, show_progress: bool) \
             -> Dict[SampleID, Any]:
         """Extract a feature for all samples"""
+        self.solve_dependencies()
+
         feat_dict = {}
         feat_node = self.feature_nodes[feature_name]
 
@@ -425,8 +443,9 @@ class ExtractionDAG:
     def extract_sample_wise(self, sample: Sample, show_progress: bool) \
             -> Dict[FeatureName, Any]:
         """Extract all features for a unique sample"""
-        feat_dict = {}
+        self.solve_dependencies()
 
+        feat_dict = {}
         for feature_name, feature_node in tqdm(self.feature_nodes.items(),
                                                desc=sample.id,
                                                disable=not show_progress):

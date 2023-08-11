@@ -4,6 +4,7 @@ from adfluo.dataset import DictSample
 from adfluo.extraction_graph import ExtractionDAG, SampleProcessorNode
 from adfluo.processors import Input, F, Feat
 
+
 def test_two_pipeline_parallel():
     def a(arg): pass
 
@@ -182,6 +183,7 @@ def test_caching_advanced():
     out = dag.feature_nodes["feat_b"][sample_a]
     assert cached_node._samples_cache_hits["0"] == 2
 
+
 # TODO: make a cache test where the sample processors are checking that they shouldn't be called more
 #  than once
 
@@ -189,3 +191,54 @@ def test_error_management():
     # todo : check that skip_error raises a badsample
     # todo : check that skip_error=false raises the right exception
     pass
+
+
+def test_pruning():
+    def a(n: int):
+        return a + 1
+
+    def b(n: int):
+        return n ** 2
+
+    def c(n: int):
+        return n * 2
+
+    dag = ExtractionDAG()
+    dag.add_pipeline(Input("test") >> F(a) >> Feat("plus_one"))
+    dag.add_pipeline(Input("test") >> F(a) >> F(b) >> Feat("squared"))
+    dag.add_pipeline(Input("test") >> F(a) >> F(c) >> Feat("double"))
+    dag.solve_dependencies()
+    assert dag.features == {"plus_one", "squared", "double"}
+    dag.prune_features(keep_only=["plus_one"])
+
+    assert dag.features == {"plus_one"}
+    assert len(dag.nodes) == 3  # input, F(a), Feat(plus_one)
+    assert len(dag.feature_nodes["plus_one"].parents[0].children) == 1
+
+    dag = ExtractionDAG()
+    dag.add_pipeline(Input("test") >> F(a) >> Feat("plus_one"))
+    dag.add_pipeline(Feat("plus_one") >> F(b) >> Feat("squared"))
+    dag.add_pipeline(Feat("plus_one") >> F(c) >> Feat("double"))
+    dag.solve_dependencies()
+
+    assert dag.features == {"plus_one", "squared", "double"}
+    dag.prune_features(keep_only=["plus_one"])
+
+    assert dag.features == {"plus_one"}
+    assert len(dag.nodes) == 3  # input, F(a), Feat(plus_one)
+    assert len(dag.feature_nodes["plus_one"].parents[0].children) == 1
+
+    dag = ExtractionDAG()
+    dag.add_pipeline(Input("test") >> F(a) >> Feat("plus_one"))
+    dag.add_pipeline(Feat("plus_one") >> F(b) >> Feat("squared"))
+    dag.add_pipeline(Feat("plus_one") >> F(c) >> Feat("double"))
+    dag.solve_dependencies()
+
+    assert dag.features == {"plus_one", "squared", "double"}
+    dag.prune_features(keep_only=["double"])
+
+    assert dag.features == {"double"}
+    for node in dag.nodes:
+        print(str(node))
+    assert len(dag.nodes) == 5  # input, F(a), Feat(plus_one), F(b), Feat("double")
+    assert len(dag.feature_nodes["double"].parents[0].parents[0].children) == 1
