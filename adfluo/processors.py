@@ -1,8 +1,9 @@
 import sys
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from dis import get_instructions
 from inspect import signature
-from typing import Any, List, Tuple, Callable, TYPE_CHECKING, Hashable, Optional, Union, Set, Iterable
+from typing import Any, List, Tuple, Callable, TYPE_CHECKING, Hashable, Optional, Union, Set, Iterable, Dict
 
 from sortedcontainers import SortedDict
 
@@ -15,25 +16,37 @@ if TYPE_CHECKING:
     from .pipeline import PipelineElement
 
 
+@dataclass(frozen=True)
 class ProcessorParameter:
-    def __init__(self, value: Hashable):
-        self.value: Hashable = value
+    value: Hashable
+
+
+# TODO : take in consideration hashing
+@dataclass(frozen=True)
+class ExtractorHyperParameter:
+    name: str
 
 
 def param(default: Optional[Hashable] = None) -> Any:
     return ProcessorParameter(default)
 
 
+def hparam(name: str) -> Any:
+    return ExtractorHyperParameter(name)
+
+
 class ProcessorBase(ABC):
     """Abstract base class for a processor from the feature extraction pipeline"""
 
     def __init__(self, **kwargs):
-        param_names = set(k for k, v in self.__class__.__dict__.items()
-                          if isinstance(v, ProcessorParameter))
+        param_names = self.class_params
+        hparam_names = self.hparams
         # setting kwargs-defined parameter values
         for key, val in kwargs.items():
             if key not in param_names:
                 raise AttributeError(f"Attribute {key} isn't a processor parameter")
+            if key in hparam_names:
+                continue
             setattr(self, key, val)
             param_names.remove(key)
 
@@ -46,6 +59,7 @@ class ProcessorBase(ABC):
         self.post_init()
 
     def post_init(self):
+        """To be overloaded by a child class, to do the usual job of the actual __init__ function"""
         pass
 
     @property
@@ -66,22 +80,33 @@ class ProcessorBase(ABC):
         """Processes just one sample"""
         raise NotImplemented()
 
+
     @property
-    def _class_params(self) -> Set[str]:
+    def class_params(self) -> Set[str]:
         return {k for k, v in self.__class__.__dict__.items()
                 if isinstance(v, ProcessorParameter)}
 
     @property
-    def _params(self) -> SortedDict:
-        class_params = self._class_params
+    def hparams(self) -> Set[str]:
+        return {k for k, v in self.__class__.__dict__.items()
+                if isinstance(v, ExtractorHyperParameter)}
+
+    @property
+    def _sorted_params(self) -> SortedDict:
         param_dict = SortedDict()
-        for k, v in self.__class__.__dict__.items():
-            if k in class_params:
-                param_dict[k] = getattr(self, k, None)
+        for k in self.class_params:
+            param_dict[k] = getattr(self, k, None)
+        for k in self.hparams:
+            param_dict[k] = self.__class__.__dict__[k]
         return param_dict
 
+    def set_hparams(self, **params: Dict[str, Any]):
+        for k, v in params:
+            if k in self.hparams:
+                setattr(self, k, v)
+
     def __hash__(self):
-        return hash((self.__class__, tuple(self._params.items())))
+        return hash((self.__class__, tuple(self._sorted_params.items())))
 
     def __eq__(self, other):
         return hash(self) == hash(other)
@@ -92,7 +117,7 @@ class ProcessorBase(ABC):
     def __str__(self):
         return "{class_name}({args})".format(
             class_name=self.__class__.__name__,
-            args=",".join(f"{key}={value!r}" for key, value in self._params.items())
+            args=",".join(f"{key}={value!r}" for key, value in self._sorted_params.items())
         )
 
     def __rshift__(self, other: 'PipelineElement'):

@@ -1,12 +1,13 @@
 from csv import Dialect
+from itertools import chain
 from pathlib import Path
 from typing import Union, Optional, TextIO, BinaryIO, TYPE_CHECKING, List, Dict, Set
 
-from typing_extensions import Literal
+from typing_extensions import Literal, Any
 
 from .dataset import DatasetLoader, Sample, ListLoader
 from .exceptions import DuplicateSampleError
-from .extraction_graph import ExtractionDAG, FeatureName, FeatureNode
+from .extraction_graph import ExtractionDAG, FeatureName, FeatureNode, SampleProcessorNode
 from .pipeline import ExtractionPipeline
 from .storage import BaseStorage, CSVStorage, PickleStorage, DataFrameStorage, JSONStorage, \
     SplitPickleStorage
@@ -29,6 +30,17 @@ class Extractor:
         self.skip_errors = skip_errors
         self.show_progress = show_progress
         self.dropped_features: Set[FeatureName] = set()
+
+    @property
+    def hparams(self) -> Set[str]:
+        return set(chain.from_iterable(node.processor.hparams for node in self.extraction_DAG.nodes
+                                       if isinstance(node, SampleProcessorNode)))
+
+    def set_hparams(self, params: Dict[str, Any]):
+        assert set(params.keys()) == self.hparams
+        for node in self.extraction_DAG.nodes:
+            if isinstance(node, SampleProcessorNode):
+                node.processor.set_hparams(**params)
 
     def add_extraction(
             self,

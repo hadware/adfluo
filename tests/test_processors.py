@@ -15,7 +15,7 @@ def test_proc_params():
         def process(self, *args) -> Any:
             pass
 
-    assert TestProc(a=1, b="b")._params == SortedDict({'a': 1, 'b': 'b'})
+    assert TestProc(a=1, b="b")._sorted_params == SortedDict({'a': 1, 'b': 'b'})
     assert TestProc(a=1, b=2) == TestProc(a=1, b=2)
     assert TestProc(a=1, b="a") != TestProc(a=1, b="b")
     assert repr(TestProc(a=1, b=2)) == "<TestProc(a=1,b=2)>"
@@ -32,9 +32,9 @@ def test_processor_default_params():
         def process(self, *args) -> Any:
             pass
 
-    assert TestProc()._params == SortedDict({'a': 1, 'b': 'c'})
+    assert TestProc()._sorted_params == SortedDict({'a': 1, 'b': 'c'})
     assert repr(TestProc()) == "<TestProc(a=1,b='c')>"
-    assert TestProc(a=2)._params == SortedDict({'a': 2, 'b': 'c'})
+    assert TestProc(a=2)._sorted_params == SortedDict({'a': 2, 'b': 'c'})
 
 
 def test_fun_hash():
