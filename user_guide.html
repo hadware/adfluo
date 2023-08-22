@@ -11,11 +11,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="_static/jquery.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=01f34227"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -101,9 +101,9 @@
            <div itemprop="articleBody">
              
   <section id="user-guide">
-<span id="id1"></span><h1>User Guide<a class="headerlink" href="#user-guide" title="Permalink to this heading"></a></h1>
+<span id="id1"></span><h1>User Guide<a class="headerlink" href="#user-guide" title="Link to this heading"></a></h1>
 <section id="datasets">
-<h2>Datasets<a class="headerlink" href="#datasets" title="Permalink to this heading"></a></h2>
+<h2>Datasets<a class="headerlink" href="#datasets" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">DatasetLoader</span></code> are a very light abstraction from <code class="docutils literal notranslate"><span class="pre">adfluo</span></code>, largely
 inspired by Pytorch’s <a class="reference external" href="https://pytorch.org/docs/stable/data.html">Dataloaders</a> .</p>
 <p>Their goal is to provide an interface by which <code class="docutils literal notranslate"><span class="pre">adfluo</span></code> can:</p>
@@ -120,7 +120,7 @@ the <code class="docutils literal notranslate"><span class="pre">__getitem__</sp
 <li><p>all of your dataset’s samples should have a unique string identifier</p></li>
 </ul>
 <section id="implementing-your-own-datasetloader-and-samples">
-<h3>Implementing your own DatasetLoader and Samples<a class="headerlink" href="#implementing-your-own-datasetloader-and-samples" title="Permalink to this heading"></a></h3>
+<h3>Implementing your own DatasetLoader and Samples<a class="headerlink" href="#implementing-your-own-datasetloader-and-samples" title="Link to this heading"></a></h3>
 <p>Let’s say we have a dataset containing audio files and a corresponding transcription. They are stored
 using the following file hierarchy:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>dataset/
@@ -162,49 +162,49 @@ First, let’s implement our own <code class="docutils literal notranslate"><spa
 </div>
 </section>
 <section id="using-python-primitives-as-a-dataset">
-<h3>Using Python primitives as a Dataset<a class="headerlink" href="#using-python-primitives-as-a-dataset" title="Permalink to this heading"></a></h3>
+<h3>Using Python primitives as a Dataset<a class="headerlink" href="#using-python-primitives-as-a-dataset" title="Link to this heading"></a></h3>
 <p>TODO</p>
 </section>
 </section>
 <section id="processors">
-<h2>Processors<a class="headerlink" href="#processors" title="Permalink to this heading"></a></h2>
+<h2>Processors<a class="headerlink" href="#processors" title="Link to this heading"></a></h2>
 <p>TODO: List and explain the types of processors</p>
 <section id="sample-processors">
-<h3>Sample Processors<a class="headerlink" href="#sample-processors" title="Permalink to this heading"></a></h3>
+<h3>Sample Processors<a class="headerlink" href="#sample-processors" title="Link to this heading"></a></h3>
 <p>TODO</p>
 </section>
 <section id="using-functions-and-lambdas-as-processors">
-<h3>Using functions and lambdas as processors<a class="headerlink" href="#using-functions-and-lambdas-as-processors" title="Permalink to this heading"></a></h3>
+<h3>Using functions and lambdas as processors<a class="headerlink" href="#using-functions-and-lambdas-as-processors" title="Link to this heading"></a></h3>
 <p>TODO</p>
 </section>
 <section id="batch-processors">
-<h3>Batch processors<a class="headerlink" href="#batch-processors" title="Permalink to this heading"></a></h3>
+<h3>Batch processors<a class="headerlink" href="#batch-processors" title="Link to this heading"></a></h3>
 <p>TODO</p>
 </section>
 </section>
 <section id="pipelines">
-<h2>Pipelines<a class="headerlink" href="#pipelines" title="Permalink to this heading"></a></h2>
+<h2>Pipelines<a class="headerlink" href="#pipelines" title="Link to this heading"></a></h2>
 <section id="basics">
-<h3>Basics<a class="headerlink" href="#basics" title="Permalink to this heading"></a></h3>
+<h3>Basics<a class="headerlink" href="#basics" title="Link to this heading"></a></h3>
 <p>TODO</p>
 </section>
 <section id="advanced-input-output">
-<h3>Advanced Input/Output<a class="headerlink" href="#advanced-input-output" title="Permalink to this heading"></a></h3>
+<h3>Advanced Input/Output<a class="headerlink" href="#advanced-input-output" title="Link to this heading"></a></h3>
 <p>TODO</p>
 </section>
 <section id="advanced-pipelines-architectures">
-<h3>Advanced Pipelines Architectures<a class="headerlink" href="#advanced-pipelines-architectures" title="Permalink to this heading"></a></h3>
+<h3>Advanced Pipelines Architectures<a class="headerlink" href="#advanced-pipelines-architectures" title="Link to this heading"></a></h3>
 <p>TODO</p>
 </section>
 </section>
 <section id="extraction">
-<h2>Extraction<a class="headerlink" href="#extraction" title="Permalink to this heading"></a></h2>
+<h2>Extraction<a class="headerlink" href="#extraction" title="Link to this heading"></a></h2>
 <section id="storage-options">
-<h3>Storage options<a class="headerlink" href="#storage-options" title="Permalink to this heading"></a></h3>
+<h3>Storage options<a class="headerlink" href="#storage-options" title="Link to this heading"></a></h3>
 <p>TODO</p>
 </section>
 <section id="extraction-options">
-<h3>Extraction options<a class="headerlink" href="#extraction-options" title="Permalink to this heading"></a></h3>
+<h3>Extraction options<a class="headerlink" href="#extraction-options" title="Link to this heading"></a></h3>
 <p>TODO</p>
 </section>
 </section>

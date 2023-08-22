@@ -11,11 +11,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="_static/jquery.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=01f34227"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -88,10 +88,10 @@
            <div itemprop="articleBody">
              
   <section id="how-to">
-<span id="id1"></span><h1>How-To<a class="headerlink" href="#how-to" title="Permalink to this heading"></a></h1>
+<span id="id1"></span><h1>How-To<a class="headerlink" href="#how-to" title="Link to this heading"></a></h1>
 <p>This section is a list of miscellaneous task-oriented tutorials for specific usages of <code class="docutils literal notranslate"><span class="pre">adfluo</span></code></p>
 <section id="dealing-with-large-datasets">
-<h2>Dealing with large datasets<a class="headerlink" href="#dealing-with-large-datasets" title="Permalink to this heading"></a></h2>
+<h2>Dealing with large datasets<a class="headerlink" href="#dealing-with-large-datasets" title="Link to this heading"></a></h2>
 <p>This tutorial is aimed relevant if you’re planning on using <code class="docutils literal notranslate"><span class="pre">adfluo</span></code> to extract feature from large datasets and extraction pipelines that:</p>
 <ul class="simple">
 <li><p>have samples that require a large amount of memory to be processed
@@ -104,35 +104,35 @@ your computer’s memory (e.g: a myriad of small images)</p></li>
 <p>What follows is some advice on best to use <code class="docutils literal notranslate"><span class="pre">adfluo</span></code> to prevent your feature computation code from
 eating all of your RAM.</p>
 <section id="make-data-loading-as-lazy-as-possible">
-<h3>Make data loading as lazy as possible<a class="headerlink" href="#make-data-loading-as-lazy-as-possible" title="Permalink to this heading"></a></h3>
+<h3>Make data loading as lazy as possible<a class="headerlink" href="#make-data-loading-as-lazy-as-possible" title="Link to this heading"></a></h3>
 <p>If your samples contain large files (for instance, a 2h long WAV audio file),
 you should probably make the sample data loading as lazy as possible. This
 means that the sample instance only contains a reference to the actual data
 that is to be processed:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>   from adfluo import Sample
-   from scipy.io.wavefile import read as read_wav
-   from pillow import read as read_jpeg
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>   <span class="kn">from</span> <span class="nn">adfluo</span> <span class="kn">import</span> <span class="n">Sample</span>
+   <span class="kn">from</span> <span class="nn">scipy.io.wavefile</span> <span class="kn">import</span> <span class="n">read</span> <span class="k">as</span> <span class="n">read_wav</span>
+   <span class="kn">from</span> <span class="nn">pillow</span> <span class="kn">import</span> <span class="n">read</span> <span class="k">as</span> <span class="n">read_jpeg</span>
 
-   class MyLazySample(Sample):
-       &quot;&quot;&quot;This sample class only stores the paths to the data it references,
-       and loads the actual data only when asked to.&quot;&quot;&quot;
+   <span class="k">class</span> <span class="nc">MyLazySample</span><span class="p">(</span><span class="n">Sample</span><span class="p">):</span>
+<span class="w">       </span><span class="sd">&quot;&quot;&quot;This sample class only stores the paths to the data it references,</span>
+<span class="sd">       and loads the actual data only when asked to.&quot;&quot;&quot;</span>
 
-       def __init__(self, data_path: Path):
-           self.audio_path = data_path / Path(&quot;audio.wav&quot;)
-           self.img_path = data_path / Path(&quot;img.jpeg&quot;)
+       <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
+           <span class="bp">self</span><span class="o">.</span><span class="n">audio_path</span> <span class="o">=</span> <span class="n">data_path</span> <span class="o">/</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;audio.wav&quot;</span><span class="p">)</span>
+           <span class="bp">self</span><span class="o">.</span><span class="n">img_path</span> <span class="o">=</span> <span class="n">data_path</span> <span class="o">/</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;img.jpeg&quot;</span><span class="p">)</span>
 
-       def __getitem__(self, data_name: str):
-           if data_name == &quot;audio&quot;:
-               return read_wav(self.audio_path)
-           elif data_name == &quot;img&quot;:
-               return read_jpeg(self.img_path)
+       <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+           <span class="k">if</span> <span class="n">data_name</span> <span class="o">==</span> <span class="s2">&quot;audio&quot;</span><span class="p">:</span>
+               <span class="k">return</span> <span class="n">read_wav</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">audio_path</span><span class="p">)</span>
+           <span class="k">elif</span> <span class="n">data_name</span> <span class="o">==</span> <span class="s2">&quot;img&quot;</span><span class="p">:</span>
+               <span class="k">return</span> <span class="n">read_jpeg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_path</span><span class="p">)</span>
 
-``adfluo`` will then take care of caching what&#39;s needed and what&#39;s not as efficiently as possible.
+<span class="err">``</span><span class="n">adfluo</span><span class="err">``</span> <span class="n">will</span> <span class="n">then</span> <span class="n">take</span> <span class="n">care</span> <span class="n">of</span> <span class="n">caching</span> <span class="n">what</span><span class="s1">&#39;s needed and what&#39;</span><span class="n">s</span> <span class="ow">not</span> <span class="k">as</span> <span class="n">efficiently</span> <span class="k">as</span> <span class="n">possible</span><span class="o">.</span>
 </pre></div>
 </div>
 </section>
 <section id="use-sample-wise-extraction-order">
-<h3>Use sample-wise extraction order<a class="headerlink" href="#use-sample-wise-extraction-order" title="Permalink to this heading"></a></h3>
+<h3>Use sample-wise extraction order<a class="headerlink" href="#use-sample-wise-extraction-order" title="Link to this heading"></a></h3>
 <p>By default, to keep a cleaner output, <code class="docutils literal notranslate"><span class="pre">adfluo</span></code>’s extraction order is <em>feature-wise</em>, meaning that
 <code class="docutils literal notranslate"><span class="pre">adfluo</span></code> will extract <code class="docutils literal notranslate"><span class="pre">feat_A</span></code> for <strong>all the samples</strong> in the dataset, then
 proceed to do the same for <code class="docutils literal notranslate"><span class="pre">feat_b</span></code> and so on. This is made as efficient as possible (by computing
@@ -154,7 +154,7 @@ stick to feature-wise extraction order.</p>
 </div>
 </section>
 <section id="enable-streaming-for-the-output-s-storage">
-<h3>Enable streaming for the output’s storage<a class="headerlink" href="#enable-streaming-for-the-output-s-storage" title="Permalink to this heading"></a></h3>
+<h3>Enable streaming for the output’s storage<a class="headerlink" href="#enable-streaming-for-the-output-s-storage" title="Link to this heading"></a></h3>
 <p>If both the input data and the extracted features are large, it’s best to use all of
 the aforementioned tricks, plus this one. This only works if you’re storing
 your extracted features in the “1-pickle-per-file” output or the HDF5 format.</p>
@@ -165,7 +165,7 @@ your extracted features in the “1-pickle-per-file” output or the HDF5 format
 </div>
 </section>
 <section id="disable-any-form-of-caching">
-<h3>Disable any form of caching<a class="headerlink" href="#disable-any-form-of-caching" title="Permalink to this heading"></a></h3>
+<h3>Disable any form of caching<a class="headerlink" href="#disable-any-form-of-caching" title="Link to this heading"></a></h3>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>While all of the previous solutions had no impact on performance,
@@ -182,11 +182,11 @@ pipeline. Enable it by setting the <code class="docutils literal notranslate"><s
 </section>
 </section>
 <section id="picking-the-right-storage-format">
-<h2>Picking the right storage format<a class="headerlink" href="#picking-the-right-storage-format" title="Permalink to this heading"></a></h2>
+<h2>Picking the right storage format<a class="headerlink" href="#picking-the-right-storage-format" title="Link to this heading"></a></h2>
 <p>TODO</p>
 </section>
 <section id="sharing-your-extraction-pipelines">
-<h2>Sharing your extraction pipelines<a class="headerlink" href="#sharing-your-extraction-pipelines" title="Permalink to this heading"></a></h2>
+<h2>Sharing your extraction pipelines<a class="headerlink" href="#sharing-your-extraction-pipelines" title="Link to this heading"></a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
 </pre></div>
 </div>
