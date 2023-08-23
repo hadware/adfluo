@@ -4,7 +4,7 @@ import pytest
 from sortedcontainers import SortedDict
 
 from adfluo.dataset import DictSample
-from adfluo.processors import param, SampleProcessor, F, Input, Feat, ListWrapperProcessor
+from adfluo.processors import param, SampleProcessor, F, Input, Feat, ListWrapperProcessor, hparam
 
 
 def test_proc_params():
@@ -115,5 +115,51 @@ def test_list_processors():
     assert ListWrapperProcessor(F(f))(None, ([1, 2, 3],)) == [1, 4, 9]
     assert ListWrapperProcessor(SquareProc())(None, ([1, 2, 3],)) == [1, 4, 9]
     assert ListWrapperProcessor(F(f)) == ListWrapperProcessor(F(f))
+
+
+def test_processor_hparam_hash():
+    class ProcA(SampleProcessor):
+        param_a: str = param()
+        param_b: int = param()
+
+        def process(self, *args) -> Any:
+            return 1
+
+    proc_a = ProcA(param_a="test", param_b=hparam("hparam_a"))
+    proc_b = ProcA(param_a="test", param_b=hparam("hparam_a"))
+    proc_c = ProcA(param_a="test", param_b=hparam("hparam_b"))
+    proc_d = ProcA(param_a=hparam("hparam_a"), param_b=hparam("hparam_b"))
+    assert proc_a == proc_b
+    assert proc_a != proc_c
+    assert proc_a != proc_d
+
+
+def test_processor_hparam_list():
+    class ProcA(SampleProcessor):
+        param_a: str = param()
+        param_b: int = param()
+        param_c: int = param()
+
+        def process(self, *args) -> Any:
+            return 1
+
+    proc_a = ProcA(param_a=hparam("hparam_a"), param_b=2, param_c=hparam("hparam_b"))
+    assert proc_a.hparams == {"hparam_a", "hparam_b"}
+    proc_a = ProcA(param_a=hparam("hparam_a"), param_b=2, param_c=2)
+    assert proc_a.hparams == {"hparam_a"}
+
+
+def test_processor_hparam_set():
+    class ProcA(SampleProcessor):
+        param_a: str = param()
+        param_b: int = param()
+
+        def process(self, *args) -> Any:
+            return 1
+
+    proc_a = ProcA(param_a="test", param_b=hparam("hparam_b"))
+    proc_a.set_hparams(hparam_a=10, hparam_b=34)
+    assert proc_a.param_a == "test"
+    assert proc_a.param_b == 34
 
 # TODO : unittest BatchProcessors

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class ProcessorParameter:
-    value: Hashable
+    default: Hashable
 
 
 # TODO : take in consideration hashing
@@ -39,21 +39,18 @@ class ProcessorBase(ABC):
     """Abstract base class for a processor from the feature extraction pipeline"""
 
     def __init__(self, **kwargs):
-        param_names = self.class_params
-        hparam_names = self.hparams
+        param_names = set(self.class_params)
         # setting kwargs-defined parameter values
         for key, val in kwargs.items():
             if key not in param_names:
                 raise AttributeError(f"Attribute {key} isn't a processor parameter")
-            if key in hparam_names:
-                continue
             setattr(self, key, val)
             param_names.remove(key)
 
         # remaining parameters are set to the default set in the class attribute
         for param_key in param_names:
             proc_param: ProcessorParameter = getattr(self, param_key)
-            setattr(self, param_key, proc_param.value)
+            setattr(self, param_key, proc_param.default)
         self._current_sample: Optional[Sample] = None
 
         self.post_init()
@@ -80,7 +77,6 @@ class ProcessorBase(ABC):
         """Processes just one sample"""
         raise NotImplemented()
 
-
     @property
     def class_params(self) -> Set[str]:
         return {k for k, v in self.__class__.__dict__.items()
@@ -88,7 +84,7 @@ class ProcessorBase(ABC):
 
     @property
     def hparams(self) -> Set[str]:
-        return {k for k, v in self.__class__.__dict__.items()
+        return {v.name for v in self.__dict__.values()
                 if isinstance(v, ExtractorHyperParameter)}
 
     @property
@@ -96,14 +92,17 @@ class ProcessorBase(ABC):
         param_dict = SortedDict()
         for k in self.class_params:
             param_dict[k] = getattr(self, k, None)
-        for k in self.hparams:
-            param_dict[k] = self.__class__.__dict__[k]
         return param_dict
 
     def set_hparams(self, **params: Dict[str, Any]):
-        for k, v in params:
-            if k in self.hparams:
-                setattr(self, k, v)
+        for param in self.class_params:
+            attribute_val = getattr(self, param, None)
+            if not isinstance(attribute_val, ExtractorHyperParameter):
+                continue
+            # if the (class) processor parameter has been set as an hyperparam,
+            # set it using values from the params dict
+            if attribute_val.name in params:
+                setattr(self, param, params[attribute_val.name])
 
     def __hash__(self):
         return hash((self.__class__, tuple(self._sorted_params.items())))

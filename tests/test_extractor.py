@@ -1,8 +1,12 @@
+from typing import Any
+
 import pytest
 
 from adfluo import SampleProcessor, param, Input, Feat, F, Sample
 from adfluo.exceptions import DuplicateSampleError
+from adfluo.extraction_graph import SampleProcessorNode
 from adfluo.extractor import Extractor
+from adfluo.processors import hparam
 
 dataset = [{
     "data_a": i,
@@ -76,11 +80,11 @@ def test_dropped_features():
 
 
 def test_extraction_order():
-    pass
+    pass # TODO
 
 
 def test_storage_indexing():
-    pass
+    pass # TODO
 
 
 def test_duplicate_sample():
@@ -101,3 +105,36 @@ def test_duplicate_sample():
     create_dag(extractor)
     with pytest.raises(DuplicateSampleError):
         extractor.extract_to_dict(dataset, extraction_order="sample")
+
+def test_hparams():
+    class ProcA(SampleProcessor):
+        a: int = param()
+        b: int = param()
+
+        def process(self, *args) -> Any:
+            pass
+
+    class ProcB(SampleProcessor):
+        a: str = param()
+
+        def process(self, *args) -> Any:
+            pass
+
+
+    extractor = Extractor()
+    extractor.add_extraction(Input("test") >> ProcA(a=1, b=hparam("hparam_a")) >> Feat("feat_a"))
+    extractor.add_extraction(Input("test") >> ProcA(a=hparam("hparam_c"), b=2) >> Feat("feat_b"))
+    extractor.add_extraction(Input("test") >> ProcB(a=hparam("hparam_b")) >> Feat("feat_c"))
+    extractor.add_extraction(Input("test") >> ProcB(a=hparam("hparam_b")) >> Feat("feat_d"))
+    assert extractor.hparams == {"hparam_a", "hparam_b", "hparam_c"}
+    # checking if input node "test" has 3 child nodes
+    input_node = extractor.extraction_DAG.root_node.children[0]
+    assert len(input_node.children) == 3
+
+    extractor.set_hparams({
+        "hparam_a": 1,
+        "hparam_b": 2,
+        "hparam_c": 3})
+    for proc_node in input_node.children:
+        proc_node: SampleProcessorNode
+        assert len(proc_node.processor.hparams) == 0
