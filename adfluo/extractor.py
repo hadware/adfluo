@@ -68,6 +68,9 @@ class Extractor:
                  dataset: Dataset,
                  extraction_order: ExtractionOrder,
                  storage: BaseStorage):
+        if self.hparams:
+            raise RuntimeError(f"Hyperparameters {', '.join(self.hparams)} still need to be set.")
+
         assert extraction_order in ("sample", "feature")
         if isinstance(dataset, list):
             dataset = ListLoader(dataset)

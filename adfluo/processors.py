@@ -44,6 +44,11 @@ class ProcessorBase(ABC):
         for key, val in kwargs.items():
             if key not in param_names:
                 raise AttributeError(f"Attribute {key} isn't a processor parameter")
+            try:
+                hash(val)
+            except TypeError:
+                raise ValueError(f"Value for parameter {key} isn't hashable.")
+
             setattr(self, key, val)
             param_names.remove(key)
 

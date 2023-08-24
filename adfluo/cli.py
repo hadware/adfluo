@@ -1,3 +1,4 @@
+import argparse
 import json
 import logging
 import os
@@ -6,7 +7,7 @@ from argparse import ArgumentParser
 from collections import Counter
 from importlib import import_module
 from pathlib import Path
-from typing import Optional, List, Dict, Union, Type
+from typing import Optional, List, Dict, Union, Type, Tuple
 
 from tqdm import tqdm
 from typing_extensions import Literal
@@ -14,6 +15,12 @@ from typing_extensions import Literal
 from adfluo import DatasetLoader, Extractor, Sample
 from adfluo.dataset import ListLoader, SubsetLoader
 from .utils import logger, extraction_policy
+
+
+class StoreNameValuePair(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        n, v = values.split('=', 1)
+        setattr(namespace, n, v)
 
 
 class CLIParametersError(Exception):
@@ -82,10 +89,14 @@ class ExtractCommand(Command):
                                  "that has a dataset layout, a list of samples, "
                                  "a DatasetLoader instance, or a DatasetLoader "
                                  "subclass")
-        parser.add_argument("--dataset_args", type=str, nargs="*",
+        parser.add_argument("--dataset_args", "-ds", type=str, nargs="*",
                             help="If the dataset argument is a class, "
                                  "these are passed as the class's "
                                  "instantiation parameters")
+        parser.add_argument("--hparams", "-hp", nargs="*",
+                            action=StoreNameValuePair,
+                            help="If the extraction pipeline has hyper parameters, "
+                                 "this is used to set them")
         action = parser.add_mutually_exclusive_group(required=True)
         action.add_argument("--output", "-o", type=Path,
                             help="Output file path or folder (depending on format)")
@@ -130,6 +141,7 @@ class ExtractCommand(Command):
              extractor: str,
              dataset: str,
              dataset_args: Optional[List[str]],
+             hparams: Optional[List[Tuple[str, str]]],
              output: Path,
              feats: Optional[List[str]],
              exclude_feats: Optional[List[str]],
@@ -151,6 +163,14 @@ class ExtractCommand(Command):
             raise CLIParametersError(f"Couldn't import extractor {extractor}")
 
         dataset: DatasetLoader = load_dataset(dataset, dataset_args)
+
+        # setting up extractor hyperparameters
+        hparams = dict(hparams) if hparams is None else {}
+        if not set(hparams.keys()) >= extractor.hparams:
+            raise CLIParametersError(f"Extractor is missing hyperparameters argument for "
+                                     f"{', '.join(extractor.hparams - set(hparams.keys()))}")
+        elif extractor.hparams:
+            extractor.set_hparams(hparams)
 
         if test_samples:
             error_count = 0

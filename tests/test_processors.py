@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Tuple
 
 import pytest
 from sortedcontainers import SortedDict
@@ -161,5 +161,16 @@ def test_processor_hparam_set():
     proc_a.set_hparams(hparam_a=10, hparam_b=34)
     assert proc_a.param_a == "test"
     assert proc_a.param_b == 34
+
+
+def test_processors_hashcheck():
+    class ProcA(SampleProcessor):
+        param_a: Tuple[int] = param()
+
+        def process(self, *args) -> Any:
+            pass
+
+    with pytest.raises(ValueError, match=r"Value for parameter .* isn't hashable."):
+        ProcA(param_a=[1, 2, 3])
 
 # TODO : unittest BatchProcessors
