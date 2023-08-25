@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from dis import get_instructions
 from inspect import signature
-from typing import Any, List, Tuple, Callable, TYPE_CHECKING, Hashable, Optional, Union, Set, Iterable, Dict
+from typing import Any, List, Tuple, Callable, TYPE_CHECKING, Hashable, Optional, Union, Set, Iterable, Dict, Type
 
 from sortedcontainers import SortedDict
 
@@ -25,14 +25,15 @@ class ProcessorParameter:
 @dataclass(frozen=True)
 class ExtractorHyperParameter:
     name: str
+    type: Optional[Type]
 
 
 def param(default: Optional[Hashable] = None) -> Any:
     return ProcessorParameter(default)
 
 
-def hparam(name: str) -> Any:
-    return ExtractorHyperParameter(name)
+def hparam(name: str, type: Optional[Type] = None) -> Any:
+    return ExtractorHyperParameter(name, type)
 
 
 class ProcessorBase(ABC):
@@ -99,15 +100,19 @@ class ProcessorBase(ABC):
             param_dict[k] = getattr(self, k, None)
         return param_dict
 
-    def set_hparams(self, **params: Dict[str, Any]):
+    def set_hparams(self, **hparams: Dict[str, Any]):
         for param in self.class_params:
             attribute_val = getattr(self, param, None)
             if not isinstance(attribute_val, ExtractorHyperParameter):
                 continue
             # if the (class) processor parameter has been set as an hyperparam,
             # set it using values from the params dict
-            if attribute_val.name in params:
-                setattr(self, param, params[attribute_val.name])
+            if attribute_val.name in hparams:
+                value = hparams[attribute_val.name]
+                # converting param value using hparam type if specified
+                if attribute_val.type is not None:
+                    value = attribute_val.type(value)
+                setattr(self, param, value)
 
     def __hash__(self):
         return hash((self.__class__, tuple(self._sorted_params.items())))

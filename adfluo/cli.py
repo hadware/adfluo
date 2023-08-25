@@ -17,10 +17,10 @@ from adfluo.dataset import ListLoader, SubsetLoader
 from .utils import logger, extraction_policy
 
 
-class StoreNameValuePair(argparse.Action):
+class StoreNameValuePairs(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        n, v = values.split('=', 1)
-        setattr(namespace, n, v)
+        values = dict(v.split("=", 1) for v in values)
+        setattr(namespace, self.dest, values)
 
 
 class CLIParametersError(Exception):
@@ -94,7 +94,7 @@ class ExtractCommand(Command):
                                  "these are passed as the class's "
                                  "instantiation parameters")
         parser.add_argument("--hparams", "-hp", nargs="*",
-                            action=StoreNameValuePair,
+                            action=StoreNameValuePairs,
                             help="If the extraction pipeline has hyper parameters, "
                                  "this is used to set them")
         action = parser.add_mutually_exclusive_group(required=True)
@@ -165,9 +165,9 @@ class ExtractCommand(Command):
         dataset: DatasetLoader = load_dataset(dataset, dataset_args)
 
         # setting up extractor hyperparameters
-        hparams = dict(hparams) if hparams is None else {}
+        hparams = dict(hparams) if hparams is not None else {}
         if not set(hparams.keys()) >= extractor.hparams:
-            raise CLIParametersError(f"Extractor is missing hyperparameters argument for "
+            raise CLIParametersError(f"Extractor is missing hyperparameters value for hyperparameters: "
                                      f"{', '.join(extractor.hparams - set(hparams.keys()))}")
         elif extractor.hparams:
             extractor.set_hparams(hparams)
