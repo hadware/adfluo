@@ -282,6 +282,11 @@ attribute.</p>
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">adfluo.storage.</span></span><span class="sig-name descname"><span class="pre">JSONStorage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">indexing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'feature'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'sample'</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">TextIO</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#adfluo.storage.JSONStorage" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="#adfluo.storage.BaseStorage" title="adfluo.storage.BaseStorage"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseStorage</span></code></a></p>
 <dl class="py method">
+<dt class="sig sig-object py" id="adfluo.storage.JSONStorage.check_samples">
+<span class="sig-name descname"><span class="pre">check_samples</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#adfluo.storage.JSONStorage.check_samples" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="adfluo.storage.JSONStorage.get_value">
 <span class="sig-name descname"><span class="pre">get_value</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#adfluo.storage.JSONStorage.get_value" title="Link to this definition"></a></dt>
 <dd></dd></dl>
@@ -307,6 +312,11 @@ attribute.</p>
 <dt class="sig sig-object py" id="adfluo.storage.PickleStorage">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">adfluo.storage.</span></span><span class="sig-name descname"><span class="pre">PickleStorage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">indexing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'feature'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'sample'</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">BinaryIO</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#adfluo.storage.PickleStorage" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="#adfluo.storage.BaseStorage" title="adfluo.storage.BaseStorage"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseStorage</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="adfluo.storage.PickleStorage.check_samples">
+<span class="sig-name descname"><span class="pre">check_samples</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#adfluo.storage.PickleStorage.check_samples" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="adfluo.storage.PickleStorage.get_value">
 <span class="sig-name descname"><span class="pre">get_value</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#adfluo.storage.PickleStorage.get_value" title="Link to this definition"></a></dt>
@@ -334,6 +344,11 @@ attribute.</p>
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">adfluo.storage.</span></span><span class="sig-name descname"><span class="pre">CSVStorage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">indexing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'feature'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'sample'</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">TextIO</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dialect</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dialect</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#adfluo.storage.CSVStorage" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="#adfluo.storage.BaseStorage" title="adfluo.storage.BaseStorage"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseStorage</span></code></a></p>
 <dl class="py method">
+<dt class="sig sig-object py" id="adfluo.storage.CSVStorage.check_samples">
+<span class="sig-name descname"><span class="pre">check_samples</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#adfluo.storage.CSVStorage.check_samples" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="adfluo.storage.CSVStorage.get_value">
 <span class="sig-name descname"><span class="pre">get_value</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#adfluo.storage.CSVStorage.get_value" title="Link to this definition"></a></dt>
 <dd></dd></dl>
@@ -359,6 +374,11 @@ attribute.</p>
 <dt class="sig sig-object py" id="adfluo.storage.DataFrameStorage">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">adfluo.storage.</span></span><span class="sig-name descname"><span class="pre">DataFrameStorage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">indexing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'feature'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'sample'</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#adfluo.storage.DataFrameStorage" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="#adfluo.storage.BaseStorage" title="adfluo.storage.BaseStorage"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseStorage</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="adfluo.storage.DataFrameStorage.check_samples">
+<span class="sig-name descname"><span class="pre">check_samples</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#adfluo.storage.DataFrameStorage.check_samples" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="adfluo.storage.DataFrameStorage.get_value">
 <span class="sig-name descname"><span class="pre">get_value</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pd.DataFrame</span></span></span><a class="headerlink" href="#adfluo.storage.DataFrameStorage.get_value" title="Link to this definition"></a></dt>
