@@ -36,7 +36,8 @@
 * Make a recipe for resampling (maybe also think about some helpful API elements for this)
 * EASY: add custom storage that can be passed to `Feat` (callable with signature (feat_name, sample_id, data: Any))
 * EASY: use rich.track instead of tqdm: it's much prettier. track also has a `disable` setting
-* URGENT: add unit tests for extractor hparams on processors and add CLI option.
+* EASY: add "reset" (clear cache and all) functionality to be able to reuse the same extractor on different datasets in the same run
+* EASY - URGENT: Add a check() function to storage backends that checks if each and every value can be safely dumped
 
 # Future implementation Notes
 

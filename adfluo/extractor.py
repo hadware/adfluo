@@ -170,6 +170,7 @@ class Extractor:
 
         storage = JSONStorage(storage_indexing, json_file)
         self._extract(dataset, extraction_order, storage)
+        storage.check_samples()
         storage.write()
 
         if isinstance(output_file, (Path, str)):

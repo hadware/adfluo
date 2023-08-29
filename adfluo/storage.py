@@ -23,6 +23,20 @@ class BaseStorage:
         self._data: Dict[SampleID, Dict[FeatureName, Any]] = defaultdict(dict)
         self._features: Set[FeatureName] = set()
 
+    def check_samples(self):
+        for sample_id, sample_dict in self._data.items():
+            for feat_name, feat_value in sample_dict.items():
+                try:
+                    self._check_feat_value(feat_value)
+                except Exception as err:
+                    raise TypeError(f"Error while trying to save feature {feat_name} for sample {sample_id} : "
+                                    f"{str(err)}.\n (value: {repr(feat_value)})")
+
+    def _check_feat_value(self, sample_value: Any):
+        """Needs to be overloaded: checks if the sample can be properly serialized by the storage format,
+        else, raises an error"""
+        pass
+
     def store_feat(self, feature: str, data: Dict[SampleID, Any]):
         self._features.add(feature)
         for sample_id, value in data.items():
@@ -120,6 +134,9 @@ class JSONStorage(BaseStorage):
                  output_file: TextIO):
         super().__init__(indexing)
         self.file = output_file
+
+    def _check_feat_value(self, sample_value: Any):
+        json.dumps(sample_value)
 
     def write(self):
         json.dump(self.get_value(), self.file)
