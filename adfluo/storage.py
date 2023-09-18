@@ -46,7 +46,9 @@ class BaseStorage:
         self._features.update(set(data.keys()))
         self._data[sample.id] = data
 
-    def get_value(self):
+    def get_data(self):
+        """Returns the stored data with the proper indexing,
+         mainly used when the storage backend writes its stored data"""
         if self.indexing == "feature":
             out_data = defaultdict(dict)
             for sample_id, feat_dict in self._data.items():
@@ -68,7 +70,7 @@ class CSVStorage(BaseStorage):
         self.dialect = dialect
 
     def write(self):
-        data = self.get_value()
+        data = self.get_data()
         if self.indexing == "sample":
             index_column = "sample_id"
             fields = [index_column] + sorted(list(self._features))
@@ -92,7 +94,7 @@ class PickleStorage(BaseStorage):
         self.file = output_file
 
     def write(self):
-        pickle.dump(self.get_value(), self.file)
+        pickle.dump(self.get_data(), self.file)
 
 
 class SplitPickleStorage(BaseStorage):
@@ -107,11 +109,13 @@ class SplitPickleStorage(BaseStorage):
 
     def store_sample(self, sample: Sample, data: Dict[FeatureName, Any]):
         super().store_sample(sample, data)
+        # if the indexing allows it, dumping all stored data to disk and clearing current storage
         if self.indexing == "sample" and self.streaming:
             self.flush()
 
     def store_feat(self, feature: str, data: Dict[SampleID, Any]):
         super().store_feat(feature, data)
+        # if the indexing allows it, dumping all stored data to disk and clearing current storage
         if self.indexing == "feature" and self.streaming:
             self.flush()
 
@@ -121,7 +125,7 @@ class SplitPickleStorage(BaseStorage):
         self._data = defaultdict(dict)
 
     def write(self):
-        data = self.get_value()
+        data = self.get_data()
         for key, data in data.items():
             with open(self.folder / Path(f"{key}.pckl"), "wb") as pkfile:
                 pickle.dump(data, pkfile)
@@ -139,13 +143,13 @@ class JSONStorage(BaseStorage):
         json.dumps(sample_value)
 
     def write(self):
-        json.dump(self.get_value(), self.file)
+        json.dump(self.get_data(), self.file)
 
 
 class DataFrameStorage(BaseStorage):
 
-    def get_value(self) -> 'pd.DataFrame':
-        data = super().get_value()
+    def get_data(self) -> 'pd.DataFrame':
+        data = super().get_data()
         import pandas as pd
         return pd.DataFrame.from_dict(data)
 

@@ -112,7 +112,7 @@ class Extractor:
         extraction_policy.no_cache = no_caching
         storage = BaseStorage(storage_indexing)
         self._extract(dataset, extraction_order, storage)
-        return storage.get_value()
+        return storage.get_data()
 
     def extract_to_csv(self,
                        dataset: Dataset,
@@ -204,7 +204,7 @@ class Extractor:
         extraction_policy.no_cache = no_caching
         storage = DataFrameStorage(storage_indexing)
         self._extract(dataset, extraction_order, storage)
-        return storage.get_value()
+        return storage.get_data()
 
     def extract_to_hdf5(self,
                         dataset: Dataset,

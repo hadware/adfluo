@@ -31,11 +31,11 @@ def fill_storage(storage: BaseStorage):
 def test_base_storage():
     storage = BaseStorage(indexing="sample")
     fill_storage(storage)
-    assert storage.get_value() == storage_dict_sample_idx
+    assert storage.get_data() == storage_dict_sample_idx
 
     storage = BaseStorage(indexing="feature")
     fill_storage(storage)
-    assert storage.get_value() == storage_dict_feat_idx
+    assert storage.get_data() == storage_dict_feat_idx
 
 
 def test_csv_storage():
