@@ -76,16 +76,22 @@ class Extractor:
             dataset = ListLoader(dataset)
 
         self.extraction_DAG.set_loader(dataset)
+        # feature-wise extraction
         if extraction_order == "feature":
-            for feature_name in self.extraction_DAG.feature_nodes:
+            for feature_name, feat_node in self.extraction_DAG.feature_nodes.items():
                 logger.info(f"Extracting feature {feature_name}")
                 output_data = self.extraction_DAG.extract_feature_wise(feature_name,
                                                                        self.show_progress)
                 if feature_name in self.dropped_features:
                     continue
 
-                storage.store_feat(feature_name, output_data)
-        else:
+                if feat_node.processor.custom_storage is None:
+                    storage.store_feat(feature_name, output_data)
+                else:
+                    for sample_id, value in output_data.items():
+                        feat_node.processor.custom_storage.store(sample_id, feature_name, value)
+
+        else: # sample-wise extraction
             sample_ids = set()
             for sample in dataset:
                 if sample.id in sample_ids:
@@ -101,6 +107,12 @@ class Extractor:
                     if feat_name in output_data:
                         del output_data[feat_name]
 
+                # handling custom storage
+                for feat_name, value in output_data.items():
+                    feat_node = self.extraction_DAG.feature_nodes[feat_name]
+                    if feat_node.processor.custom_storage is not None:
+                        feat_node.processor.custom_storage.store(sample.id, feat_name, value)
+                        del output_data[feat_name]
                 storage.store_sample(sample, output_data)
 
     def extract_to_dict(self,

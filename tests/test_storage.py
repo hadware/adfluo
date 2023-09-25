@@ -1,10 +1,14 @@
 import json
 import pickle
 from io import StringIO, BytesIO
+from itertools import chain
 from pathlib import Path
+from typing import Any
 
+from adfluo import Extractor, Input, Feat
 from adfluo.dataset import ListLoader
-from adfluo.storage import BaseStorage, CSVStorage, JSONStorage, PickleStorage, SplitPickleStorage
+from adfluo.storage import BaseStorage, CSVStorage, JSONStorage, PickleStorage, SplitPickleStorage, StorageProtocol
+from adfluo.types import SampleID, FeatureName
 
 DATA_FOLDER = Path(__file__).parent / Path("data/")
 
@@ -127,3 +131,23 @@ def test_pickle_per_file_streaming_sample(tmpdir):
     assert {f.stem for f in tmpdir.iterdir()} == {sample.id for sample in dataset}
 
 
+def test_custom_storage_feature():
+    class TestStorage(StorageProtocol):
+
+        def __init__(self):
+            self.values = dict()
+
+        def store(self, sample_id: SampleID, feat: FeatureName, value: Any):
+            self.values[(sample_id, feat)] = value
+
+    storage = TestStorage()
+    samples = [{"input_a": i, "input_b": i ** 2} for i in range(3)]
+    dataset = ListLoader(samples)
+    extractor = Extractor()
+    extractor.add_extraction(Input("input_a") >> Feat("feat_a"))
+    extractor.add_extraction(Input("input_b") >> Feat("feat_b", storage=storage))
+    output = extractor.extract_to_dict(dataset)
+    # testing that custom storage feat isn't in the output anymore
+    assert set(chain.from_iterable(feats.keys() for feats in output.values())) == {"feat_a"}
+    # testing that the storage worked properly
+    assert set(storage.values.keys()) == {(str(i), "feat_b") for i in range(3)}

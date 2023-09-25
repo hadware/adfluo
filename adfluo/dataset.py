@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Iterable, List, Dict, Any, Union
+from typing import Iterable, List, Dict, Any, Union, Sequence, Sized
 
 from adfluo.types import SampleID
 
@@ -40,7 +40,7 @@ class DictSample(Sample):
         return self.sample_dict[data_name]
 
 
-class DatasetLoader(ABC):
+class DatasetLoader(ABC, Iterable, Sized):
     """
     Child classes of this class should take care of loading a dataset
     and formatting it to samples, then storing it into the sample

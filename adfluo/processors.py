@@ -9,6 +9,7 @@ from sortedcontainers import SortedDict
 
 from .dataset import Sample
 from .exceptions import InvalidInputData
+from .storage import StorageProtocol
 from .utils import logger, extraction_policy
 from .validator import ValidatorFunction
 
@@ -53,6 +54,7 @@ class ProcessorBase(ABC):
             setattr(self, key, val)
             param_names.remove(key)
 
+        # TODO : store hparams in a dict that shouldn't be changed when hparams are set
         # remaining parameters are set to the default set in the class attribute
         for param_key in param_names:
             proc_param: ProcessorParameter = getattr(self, param_key)
@@ -325,8 +327,9 @@ class SampleFeatureProcessor(SampleProcessor):
     """A passthrough processor used as a """
     feat_name: str = param()
 
-    def __init__(self, feat_name: str):
+    def __init__(self, feat_name: str, storage: Optional[StorageProtocol] = None):
         super().__init__(feat_name=feat_name)
+        self.custom_storage = storage
 
     def process(self, *args) -> Tuple:
         return args[0]

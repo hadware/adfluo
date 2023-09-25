@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict, deque
 from typing import List, Dict, Any, Optional, Iterable, Deque, Set, TYPE_CHECKING
 
-from tqdm import tqdm
+from rich.progress import track
 
 from .dataset import DatasetLoader, Sample
 from .exceptions import DuplicateSampleError, BadSampleException
@@ -427,9 +427,9 @@ class ExtractionDAG:
         feat_node = self.feature_nodes[feature_name]
 
         sample_ids = set()
-        for sample in tqdm(self._loader,
-                           desc=feature_name,
-                           disable=not show_progress):
+        for sample in track(self._loader,
+                            description=feature_name,
+                            disable=not show_progress):
             if sample.id in sample_ids:
                 raise DuplicateSampleError(sample.id)
             sample_ids.add(sample.id)
@@ -446,9 +446,9 @@ class ExtractionDAG:
         self.solve_dependencies()
 
         feat_dict = {}
-        for feature_name, feature_node in tqdm(self.feature_nodes.items(),
-                                               desc=sample.id,
-                                               disable=not show_progress):
+        for feature_name, feature_node in track(self.feature_nodes.items(),
+                                                description=sample.id,
+                                                disable=not show_progress):
             try:
                 feat_dict[feature_name] = feature_node[sample]
             except BadSampleException:

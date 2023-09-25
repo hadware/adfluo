@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 from collections import Counter
 from importlib import import_module
 from pathlib import Path
+from pprint import pprint
 from typing import Optional, List, Dict, Union, Type, Tuple
 
 from tqdm import tqdm
@@ -14,6 +15,7 @@ from typing_extensions import Literal
 
 from adfluo import DatasetLoader, Extractor, Sample
 from adfluo.dataset import ListLoader, SubsetLoader
+from adfluo.types import StorageFormat
 from .utils import logger, extraction_policy
 
 
@@ -97,7 +99,7 @@ class ExtractCommand(Command):
                             action=StoreNameValuePairs,
                             help="If the extraction pipeline has hyper parameters, "
                                  "this is used to set them")
-        action = parser.add_mutually_exclusive_group(required=True)
+        action = parser.add_mutually_exclusive_group(required=False)
         action.add_argument("--output", "-o", type=Path,
                             help="Output file path or folder (depending on format)")
         action.add_argument("--test_samples",
@@ -129,12 +131,27 @@ class ExtractCommand(Command):
                                  "but prevents memory overflows")
         parser.add_argument("--storage_format", "-sf", type=str,
                             choices=["csv", "json", "df", "pickle", "split-pickle", "hdf5"],
-                            default="pickle",
                             help="Storage format for the extracted features")
 
         parser.add_argument("--hide_progress",
                             action="store_true",
                             help="Don't show progress bars during the extraction")
+
+    @classmethod
+    def storage_format_heuristic(cls, output_path: Path, storage_format: Optional[StorageFormat]):
+        ext_mapping: Dict[str, StorageFormat] = {
+            "csv": "csv",
+            "json": "json",
+            "pkl": "pickle",
+            "pckl": "pickle",
+            "hdf5": "hdf5",
+            "hf5": "hdf5"
+        }
+        if storage_format is not None:
+            return storage_format
+        else:
+            ext = output_path.suffix.strip(".")
+            return ext_mapping.get(ext)
 
     @classmethod
     def main(cls,
@@ -151,14 +168,14 @@ class ExtractCommand(Command):
              order: Literal["feature", "sample"],
              skip_errors: bool,
              no_caching: bool,
-             storage_format: Literal["csv", "json", "df", "pickle", "split-pickle", "hdf5"],
+             storage_format: Optional[StorageFormat],
              test_samples: bool,
              hide_progress: bool,
              **kwargs):
 
         extractor: Extractor = import_obj(extractor)
         if not isinstance(extractor, Extractor):
-            raise CLIParametersError(f"{extractor} isn't an extractor object")
+            raise CLIParametersError(f"{extractor} isn't an extractor instance")
         elif extractor is None:
             raise CLIParametersError(f"Couldn't import extractor {extractor}")
 
@@ -200,8 +217,21 @@ class ExtractCommand(Command):
             excluded_samples = set(exclude_samples)
             dataset = SubsetLoader(dataset, [s.id for s in dataset if s.id not in excluded_samples])
 
-        if storage_format == "csv":
+        kwargs = {
+            "extraction_order": order,
+            "storage_indexing": indexing,
+            "no_caching": no_caching
+        }
+
+        if output is not None:
+            storage_format = cls.storage_format_heuristic(output, storage_format)
+
+        if output is None:
+            extraction_method = extractor.extract_to_dict
+        elif storage_format == "csv":
             extraction_method = extractor.extract_to_csv
+        elif storage_format == "df":
+            extraction_method = extractor.extract_to_df
         elif storage_format == "json":
             extraction_method = extractor.extract_to_json
         elif storage_format == "pickle":
@@ -213,20 +243,19 @@ class ExtractCommand(Command):
         else:
             raise ValueError("Invalid extraction format")
 
-        kwargs = {
-            "extraction_order": order,
-            "storage_indexing": indexing,
-            "no_caching": no_caching
-        }
         if storage_format == "split-pickle":
             kwargs["output_folder"] = output
-        else:
+        elif storage_format in {"csv", "json", "pickle", "hdf5"}:
             kwargs["output_file"] = output
 
         extraction_policy.skip_errors = skip_errors
         extractor.show_progress = not hide_progress
 
-        extraction_method(dataset, **kwargs)
+        # final call to extraction routine
+        output_dict = extraction_method(dataset, **kwargs)
+
+        if output is None:
+            pprint(output_dict)
 
 
 class ShowCommand(Command):
@@ -266,6 +295,10 @@ class ShowCommand(Command):
             print(f"{len(obj.extraction_DAG.inputs)} inputs required:")
             for input_name in obj.extraction_DAG.inputs:
                 print(f"\t- {input_name}")
+
+            print(f"{len(obj.extraction_DAG.inputs)} hyper-parameters required:")
+            for hparam_name in obj.hparams:
+                print(f"\t- {hparam_name}")
 
             print(f"{len(obj.extraction_DAG.features)} features specified:")
             for feat_name in obj.extraction_DAG.features:

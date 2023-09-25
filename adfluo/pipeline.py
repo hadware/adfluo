@@ -134,12 +134,16 @@ class ExtractionPipeline:
         return self
 
     def __call__(self, sample: Union[Sample, Dict[str, Any]]) -> Dict[FeatureName, Any]:
+        # TODO: add support for datasets
         if isinstance(sample, dict):
             sample = DictSample(sample, 0)
         output_dict: Dict[FeatureName, Any] = {}
         # TODO: catch some errors (due to unsolved features/batch proc with no dataset)
         #  and "contextualize" them
         for output_node in self.outputs:
+            # skipping nodes that aren't feature nodes
+            if not isinstance(output_node, FeatureNode):
+                continue
             output_node: FeatureNode
             output_dict[output_node.processor.feat_name] = output_node[sample]
         return output_dict

@@ -4,7 +4,7 @@ import pickle
 from collections import defaultdict
 from csv import Dialect
 from pathlib import Path
-from typing import Optional, TextIO, Dict, Any, BinaryIO, Set, TYPE_CHECKING
+from typing import Optional, TextIO, Dict, Any, BinaryIO, Set, TYPE_CHECKING, Protocol
 
 from .dataset import Sample
 from .types import StorageIndexing, FeatureName, SampleID
@@ -13,6 +13,12 @@ if TYPE_CHECKING:
     try:
         import pandas as pd
     except ImportError:
+        pass
+
+
+class StorageProtocol(Protocol):
+
+    def store(self, sample_id: SampleID, feat: FeatureName, value: Any):
         pass
 
 
@@ -155,4 +161,4 @@ class DataFrameStorage(BaseStorage):
 
 
 class HDF5Storage(BaseStorage):
-    pass # TODO
+    pass  # TODO

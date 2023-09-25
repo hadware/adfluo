@@ -21,9 +21,8 @@
 * ask about names for 
   - the extractor (ExtractionSet?)
   - DatasetLoader?
-* possibility of calling a pipeline right away on a sample/dataset
 * documentation on documentation https://diataxis.fr/
-* Deactivate settattr (make object frozen) during process call 
+* Deactivate settattr on processors (make object frozen) during process call 
 * rework the error reporting system (when using skip errors or not)
 * maybe use typevars with param() to prevent having to annotate the parameter
 * make sure that `add_extraction(Input("test"))` works to get a feature directly from an input
@@ -34,10 +33,12 @@
 * URGENT?: add support for automatic list-of-items processing via *ProcessorInstance() (overloading __iter__ to return a wrapped processor)
 * Use PyCairo to draw the processor graph
 * Make a recipe for resampling (maybe also think about some helpful API elements for this)
-* EASY: add custom storage that can be passed to `Feat` (callable with signature (feat_name, sample_id, data: Any))
 * EASY: use rich.track instead of tqdm: it's much prettier. track also has a `disable` setting
 * EASY: add "reset" (clear cache and all) functionality to be able to reuse the same extractor on different datasets in the same run
-* EASY - URGENT: Add a check() function to storage backends that checks if each and every value can be safely dumped
+* URGENT: add 'append/overwrite mode' to storages
+* URGENT: default to pretty printing data when no format is specified (dict storage).
+  -> Should be able to show table if asked as well
+* URGENT: check if "possibility of calling a pipeline right away on a sample/dataset" is working
 
 # Future implementation Notes
 
