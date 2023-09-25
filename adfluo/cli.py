@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 import os
+import re
 import sys
 from argparse import ArgumentParser
 from collections import Counter
@@ -22,6 +23,9 @@ from .utils import logger, extraction_policy
 class StoreNameValuePairs(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         values = dict(v.split("=", 1) for v in values)
+        for k, v in list(values.items()):
+            if re.fullmatch(r'\".*\"', v):
+                values[k] = str(v.strip('"'))
         setattr(namespace, self.dest, values)
 
 

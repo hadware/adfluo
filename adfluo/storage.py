@@ -4,7 +4,8 @@ import pickle
 from collections import defaultdict
 from csv import Dialect
 from pathlib import Path
-from typing import Optional, TextIO, Dict, Any, BinaryIO, Set, TYPE_CHECKING, Protocol
+from typing import Optional, TextIO, Dict, Any, BinaryIO, Set, TYPE_CHECKING
+from typing_extensions import Protocol
 
 from .dataset import Sample
 from .types import StorageIndexing, FeatureName, SampleID
