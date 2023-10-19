@@ -325,6 +325,9 @@ class ShowCommand(Command):
             if duplicates:
                 print(f"WARNING: The following samples ids are duplicate: "
                       f"{', '.join(duplicates)}")
+        else:
+            print("Unsupported object: should be either a dataloader instance or class, "
+                  "or an extractor instance")
 
 
 commands = [ExtractCommand,
