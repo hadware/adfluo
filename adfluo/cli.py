@@ -11,6 +11,7 @@ from pathlib import Path
 from pprint import pprint
 from typing import Optional, List, Dict, Union, Type, Tuple
 
+from rich.progress import track
 from tqdm import tqdm
 from typing_extensions import Literal, Any
 
@@ -332,6 +333,18 @@ class ShowCommand(Command):
             if duplicates:
                 print(f"WARNING: The following samples ids are duplicate: "
                       f"{', '.join(duplicates)}")
+            print("Testing loading of all samples...")
+            samples_it = iter(obj)
+            error_count = 0
+            for _ in track(range(len(obj))):
+                try:
+                    sample = next(samples_it)
+                except StopIteration:
+                    pass
+                except Exception as err:
+                    print(f"WARNING: On sample {sample.id} got error {err}")
+                    error_count += 1
+            print(f"Got {len(obj) - error_count} valid samples and {error_count} errors")
         else:
             print("Unsupported object: should be either a dataloader instance or class, "
                   "or an extractor instance")
