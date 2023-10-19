@@ -293,6 +293,10 @@ class ShowCommand(Command):
         if isinstance(obj, list):
             obj = ListLoader(obj)
 
+        # converting datasetloader *class* to datasetloader *instance*
+        if issubclass(obj, DatasetLoader):
+            obj = obj()
+
         if isinstance(obj, Extractor):
             print(f"Info for extractor {extractor_or_dataloader}")
 

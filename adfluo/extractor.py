@@ -108,7 +108,7 @@ class Extractor:
                         del output_data[feat_name]
 
                 # handling custom storage
-                for feat_name, value in output_data.items():
+                for feat_name, value in list(output_data.items()):
                     feat_node = self.extraction_DAG.feature_nodes[feat_name]
                     if feat_node.processor.custom_storage is not None:
                         feat_node.processor.custom_storage.store(sample.id, feat_name, value)
