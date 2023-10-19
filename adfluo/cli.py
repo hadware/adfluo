@@ -7,13 +7,12 @@ import sys
 from argparse import ArgumentParser
 from collections import Counter
 from importlib import import_module
-from inspect import isclass
 from pathlib import Path
 from pprint import pprint
 from typing import Optional, List, Dict, Union, Type, Tuple
 
 from tqdm import tqdm
-from typing_extensions import Literal
+from typing_extensions import Literal, Any
 
 from adfluo import DatasetLoader, Extractor, Sample
 from adfluo.dataset import ListLoader, SubsetLoader
@@ -46,7 +45,7 @@ def import_obj(class_path: str) \
     return getattr(mod, obj_name)
 
 
-def load_dataset(dataset_name: str, dataset_args: Optional[List[str]]) -> DatasetLoader:
+def load_dataset(dataset_name: str, dataset_args: Optional[Dict[str, Any]]) -> DatasetLoader:
     # first trying to load from json (dataset is a path)
     dataset_path = Path(dataset_name)
     if dataset_path.is_file() and dataset_path.suffix == ".json":
@@ -59,7 +58,7 @@ def load_dataset(dataset_name: str, dataset_args: Optional[List[str]]) -> Datase
         if isinstance(obj, type) and issubclass(obj, DatasetLoader):
             if dataset_args is None:
                 dataset_args = []
-            return obj(*dataset_args)
+            return obj(**dataset_args)
         elif isinstance(obj, list):
             return ListLoader(obj)
         elif isinstance(obj, DatasetLoader):
@@ -96,7 +95,8 @@ class ExtractCommand(Command):
                                  "that has a dataset layout, a list of samples, "
                                  "a DatasetLoader instance, or a DatasetLoader "
                                  "subclass")
-        parser.add_argument("--dataset_args", "-ds", type=str, nargs="*",
+        parser.add_argument("--dataset_args", "-ds", nargs="*",
+                            action=StoreNameValuePairs,
                             help="If the dataset argument is a class, "
                                  "these are passed as the class's "
                                  "instantiation parameters")
@@ -272,6 +272,11 @@ class ShowCommand(Command):
         # TODO: add dataset args
         parser.add_argument("extractor_or_dataloader", type=str,
                             help="Either a DataLoader or Extractor instance in the current Namespace")
+        parser.add_argument("--dataset_args", "-ds", nargs="*",
+                            action=StoreNameValuePairs,
+                            help="If the dataset argument is a class, "
+                                 "these are passed as the class's "
+                                 "instantiation parameters")
         parser.add_argument("--output_file", "-o", type=Path,
                             help="Output file path for the extraction DAG's plot")
         # TODO : option to show DAG tree if possible
@@ -281,6 +286,7 @@ class ShowCommand(Command):
     @classmethod
     def main(cls,
              extractor_or_dataloader: str,
+             dataset_args: Optional[Dict[str, Any]],
              output_file: Optional[Path],
              dag: bool,
              **kwargs):
@@ -295,8 +301,8 @@ class ShowCommand(Command):
             obj = ListLoader(obj)
 
         # converting datasetloader *class* to datasetloader *instance*
-        if isclass(obj) and issubclass(obj, DatasetLoader):
-            obj = obj()
+        if isinstance(obj, type) and issubclass(obj, DatasetLoader):
+            obj = obj() if dataset_args is None else obj(**dataset_args)
 
         if isinstance(obj, Extractor):
             print(f"Info for extractor {extractor_or_dataloader}")
