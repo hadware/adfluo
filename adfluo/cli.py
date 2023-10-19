@@ -7,6 +7,7 @@ import sys
 from argparse import ArgumentParser
 from collections import Counter
 from importlib import import_module
+from inspect import isclass
 from pathlib import Path
 from pprint import pprint
 from typing import Optional, List, Dict, Union, Type, Tuple
@@ -294,7 +295,7 @@ class ShowCommand(Command):
             obj = ListLoader(obj)
 
         # converting datasetloader *class* to datasetloader *instance*
-        if issubclass(obj, DatasetLoader):
+        if isclass(obj) and issubclass(obj, DatasetLoader):
             obj = obj()
 
         if isinstance(obj, Extractor):

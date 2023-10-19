@@ -1,7 +1,7 @@
 [project]
 name = "adfluo"
 readme = "README.md"
-version = "0.2.4"
+version = "0.2.5"
 description = 'Pipeline-oriented feature extraction for multimodal datasets'
 authors = [
     { name = "Hadrien Titeux", email = "hadrien.titeux@ens.psl.eu" },
