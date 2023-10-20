@@ -39,6 +39,9 @@
 * URGENT: default to pretty printing data when no format is specified (dict storage).
   -> Should be able to show table if asked as well
 * URGENT: check if "possibility of calling a pipeline right away on a sample/dataset" is working
+* URGENT: add dataset features
+  - Figure out storability
+  - figure out pipeline semantics (`DSFeat` ? `AggregationProcessor` ?)
 
 # Future implementation Notes
 

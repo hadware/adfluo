@@ -57,9 +57,7 @@ def load_dataset(dataset_name: str, dataset_args: Optional[Dict[str, Any]]) -> D
     else:
         obj = import_obj(dataset_name)
         if isinstance(obj, type) and issubclass(obj, DatasetLoader):
-            if dataset_args is None:
-                dataset_args = []
-            return obj(**dataset_args)
+            return obj() if dataset_args is None else obj(**dataset_args)
         elif isinstance(obj, list):
             return ListLoader(obj)
         elif isinstance(obj, DatasetLoader):
