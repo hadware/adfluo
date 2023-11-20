@@ -88,6 +88,7 @@ class ProcessorBase(metaclass=ABCMeta):
 
     @property
     def class_params(self) -> Set[str]:
+        # TODO: maybe use dir(self.__class__) to allow for inheritance
         return {k for k, v in self.__class__.__dict__.items()
                 if isinstance(v, ProcessorParameter)}
 
@@ -342,7 +343,6 @@ Printer = PrinterProcessor()
 
 class BaseFeat(SampleProcessor):
     """A passthrough processor used as a """
-    feat_name: str = param()
 
     def __init__(self, feat_name: str, storage: Optional[StorageProtocol] = None):
         super().__init__(feat_name=feat_name)
@@ -353,13 +353,18 @@ class BaseFeat(SampleProcessor):
 
 
 class SampleFeatureProcessor(BaseFeat):
+    """A passthrough processor used to indicate per-sample features (Feats)"""
+    feat_name: str = param()
+
     # TODO: doc
     def __str__(self):
         return f"Feat({self.feat_name})"
 
 
 class DatasetFeatureProcessor(BaseFeat):
-    """A passthrough processor used as a """
+    """A passthrough processor used to indicate Dataset Features (DSFeats)"""
+    feat_name: str = param()
+
 
     # TODO: doc
     def __str__(self):

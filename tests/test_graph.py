@@ -147,13 +147,13 @@ def test_caching_simple():
     assert len(cached_node.children) == 2
     out = dag.feature_nodes["feat_a"][sample]
     assert out == 2
-    assert len(cached_node._samples_cache) == 1
-    assert cached_node._samples_cache["0"] == 2
-    assert cached_node._samples_cache_hits["0"] == 1
+    assert len(cached_node.cache._samples_cache) == 1
+    assert cached_node.cache._samples_cache["0"] == 2
+    assert cached_node.cache._samples_cache_hits["0"] == 1
 
     out = dag.feature_nodes["feat_a"][sample]
     assert out == 2
-    assert len(cached_node._samples_cache) == 0
+    assert len(cached_node.cache._samples_cache) == 0
 
 
 def test_caching_advanced():
@@ -175,13 +175,13 @@ def test_caching_advanced():
     assert out == 2
     out = dag.feature_nodes["feat_a"][sample_b]
     assert out == 3
-    assert len(cached_node._samples_cache) == 2
-    assert cached_node._samples_cache["0"] == 2
-    assert cached_node._samples_cache["1"] == 3
-    assert cached_node._samples_cache_hits["0"] == 1
+    assert len(cached_node.cache._samples_cache) == 2
+    assert cached_node.cache._samples_cache["0"] == 2
+    assert cached_node.cache._samples_cache["1"] == 3
+    assert cached_node.cache._samples_cache_hits["0"] == 1
 
     out = dag.feature_nodes["feat_b"][sample_a]
-    assert cached_node._samples_cache_hits["0"] == 2
+    assert cached_node.cache._samples_cache_hits["0"] == 2
 
 
 # TODO: make a cache test where the sample processors are checking that they shouldn't be called more

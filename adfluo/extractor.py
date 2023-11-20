@@ -3,6 +3,7 @@ from itertools import chain
 from pathlib import Path
 from typing import Union, Optional, TextIO, BinaryIO, TYPE_CHECKING, List, Dict, Set
 
+from rich.progress import track
 from typing_extensions import Literal, Any
 
 from .dataset import DatasetLoader, Sample, ListLoader
@@ -58,11 +59,14 @@ class Extractor:
                 feat_node: FeatureNode
                 self.dropped_features.add(feat_node.processor.feat_name)
 
-    def add_aggregation(self,
-                        pipeline,
-                        skip_errors: Optional[bool] = None,
-                        drop_on_save: bool = False):
-        raise NotImplementedError()
+    def extract_aggregations(self):
+        """Temporary (?) method to extract aggregations for dataset features that have a
+        storage protocol"""
+        for feat_name, feat_node in track(self.extraction_DAG.dataset_features_nodes.items(),
+                                          disable=not self.show_progress):
+            if feat_node.processor.custom_storage is None:
+                continue
+            feat_node.processor.custom_storage.store_aggregation(feat_name, feat_node())
 
     def _extract(self,
                  dataset: Dataset,
@@ -91,7 +95,7 @@ class Extractor:
                     for sample_id, value in output_data.items():
                         feat_node.processor.custom_storage.store(sample_id, feature_name, value)
 
-        else: # sample-wise extraction
+        else:  # sample-wise extraction
             sample_ids = set()
             for sample in dataset:
                 if sample.id in sample_ids:

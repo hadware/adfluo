@@ -1,12 +1,18 @@
 from abc import ABCMeta, abstractmethod
-from typing import Dict, Set
+from typing import Dict, Set, Any, TYPE_CHECKING
 
 from .dataset import Sample
 from .exceptions import BadSampleException
 from .types import SampleData, SampleID
 
+if TYPE_CHECKING:
+    from .extraction_graph import BaseGraphNode
+
 
 class BaseCache(metaclass=ABCMeta):
+
+    def __init__(self, node: 'BaseGraphNode'):
+        self.node = node
 
     @abstractmethod
     def __setitem__(self, sample: Sample, value: SampleData):
@@ -24,11 +30,10 @@ class BaseCache(metaclass=ABCMeta):
         pass
 
 
-
-
 class SampleCache(BaseCache):
 
-    def __init__(self):
+    def __init__(self, node: 'BaseGraphNode'):
+        super().__init__(node)
         self._samples_cache: Dict[SampleID, Any] = dict()
         self._samples_cache_hits: Dict[SampleID, int] = dict()
         self._failed_samples: Set[SampleID] = set()
@@ -47,7 +52,7 @@ class SampleCache(BaseCache):
             self._samples_cache_hits[sample.id] += 1
             # if the cache hits equals the number of children, the sample's
             # value can be dropped from the cache
-            if self._samples_cache_hits[sample.id] >= len(self.children):
+            if self._samples_cache_hits[sample.id] >= len(self.node.children):
                 del self._samples_cache[sample.id]
             return cached_output
         else:
@@ -64,7 +69,8 @@ class SampleCache(BaseCache):
 
 class SingleValueCache(BaseCache):
 
-    def __init__(self):
+    def __init__(self, node: 'BaseGraphNode'):
+        super().__init__(node)
         self._cached_value = None
         self._has_been_cached = False
 

@@ -22,6 +22,9 @@ class StorageProtocol(Protocol):
     def store(self, sample_id: SampleID, feat: FeatureName, value: Any):
         pass
 
+    def store_aggregation(self, feature_name: FeatureName, value: Any):
+        pass
+
 
 class BaseStorage:
 

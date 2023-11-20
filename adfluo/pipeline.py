@@ -8,7 +8,7 @@ from .extraction_graph import SampleProcessorNode, FeatureNode, InputNode, Featu
     BaseFeatureNode, DatasetInputNode, DatasetFeatureNode
 from .plotting import plot_dag
 from .processors import ProcessorBase, SampleProcessor, \
-    Input, Feat, DatasetAggregator
+    Input, Feat, DatasetAggregator, DSInput, DSFeat
 
 PipelineElement = Union['ExtractionPipeline', ProcessorBase]
 ProcessorNode = Union[SampleProcessorNode, AggregatorNode]
@@ -17,8 +17,12 @@ ProcessorNode = Union[SampleProcessorNode, AggregatorNode]
 def wrap_processor(proc: ProcessorBase) -> ProcessorNode:
     if isinstance(proc, Feat):
         return FeatureNode(proc)
+    if isinstance(proc, DSFeat):
+        return DatasetFeatureNode(proc)
     elif isinstance(proc, Input):
         return InputNode(proc)
+    elif isinstance(proc, DSInput):
+        return DatasetInputNode(proc)
     elif isinstance(proc, DatasetAggregator):
         return AggregatorNode(proc)
     elif isinstance(proc, SampleProcessor):
@@ -52,6 +56,8 @@ class ExtractionPipeline:
             node_added_to_stack = False
             node = stack.pop(0)
 
+            assert not isinstance(node, FeatureNode)
+
             # skipping input nodes/agg nodes
             if isinstance(node, (DatasetInputNode, AggregatorNode)):
                 single_value_nodes.append(node)
@@ -76,7 +82,7 @@ class ExtractionPipeline:
             # children nodes can also be added to the stack
             single_value_nodes.append(node)
             # setting cache to single value
-            node.cache = SingleValueCache()
+            node.cache = SingleValueCache(node)
             stack += node.children
             node_added_to_stack = True
 

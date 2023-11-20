@@ -76,7 +76,7 @@ class SampleProcessorNode(BaseGraphNode):
 
     def __init__(self, processor: SampleProcessor, cache: Optional[BaseCache] = None):
         super().__init__()
-        self.cache = cache if cache is not None else self.default_cache_type()
+        self.cache = cache if cache is not None else self.default_cache_type(self)
         self.processor = processor
 
     def compute_sample(self, sample: Sample) -> Any:
@@ -119,7 +119,7 @@ class AggregatorNode(BaseGraphNode):
 
     def __init__(self, processor: DatasetAggregator):
         super().__init__()
-        self.cache = SingleValueCache()
+        self.cache = SingleValueCache(self)
         self.processor = processor
 
     def compute_aggregation(self) -> Any:
@@ -180,6 +180,10 @@ class DatasetFeatureNode(BaseFeatureNode):
     which pull a dataset feature"""
     default_cache_type = SingleValueCache
     processor: DatasetFeatureProcessor
+
+    def __call__(self):
+        fake_sample = DictSample({}, 0)
+        return self[fake_sample]
 
 
 class BaseInputNode(SampleProcessorNode):
@@ -306,7 +310,6 @@ class ExtractionDAG:
         nodes_stack: Deque[BaseGraphNode] = deque(feature_nodes)
         # registering feature nodes (and checking that they're not already present)
         for feat_node in feature_nodes:
-            # TODO : better error
             # checking that there isn't already a feature named like the ones
             # from this pipeline
             feat_name = feat_node.processor.feat_name
@@ -335,7 +338,6 @@ class ExtractionDAG:
                     node = InputNode(Input(node.feature_name), is_feat=True)
                 else:
                     node = DatasetInputNode(DSInput(node.feature_name), is_feat=True)
-
 
             self.nodes.append(node)
             # an input node has to be directly connected to the root node
@@ -480,10 +482,11 @@ class ExtractionDAG:
                 pass
         return feat_dict
 
-    def extract_dataset_features(self, show_progress: bool):
+    def extract_dataset_features(self, show_progress: bool, subset: Optional[Set[set]] = None):
         feat_dict = {}
-        fake_sample = DictSample({}, 0)
         for feature_name, feature_node in track(self.dataset_features_nodes.items(),
                                                 disable=not show_progress):
-            feat_dict[feature_name] = feature_node[fake_sample]
+            if subset is not None and feature_name not in subset:
+                continue
+            feat_dict[feature_name] = feature_node()
         return feat_dict
