@@ -24,16 +24,13 @@
 * documentation on documentation https://diataxis.fr/
 * Deactivate settattr on processors (make object frozen) during process call 
 * rework the error reporting system (when using skip errors or not)
-* maybe use typevars with param() to prevent having to annotate the parameter
+* DONE : maybe use typevars with param() to prevent having to annotate the parameter -> useless
 * make sure that `add_extraction(Input("test"))` works to get a feature directly from an input
 * add optional validation logic, either through a `validates` method in sampleprocessor 
   or via a dedicated `SampleValidator` processor.
 * URGENT : make feature extraction order cache-efficient (using a tree iterator)
-* URGENT : rename "pickle per file" to "split-pickle"
-* URGENT?: add support for automatic list-of-items processing via *ProcessorInstance() (overloading __iter__ to return a wrapped processor)
 * Use PyCairo to draw the processor graph
 * Make a recipe for resampling (maybe also think about some helpful API elements for this)
-* EASY: use rich.track instead of tqdm: it's much prettier. track also has a `disable` setting
 * EASY: add "reset" (clear cache and all) functionality to be able to reuse the same extractor on different datasets in the same run
 * URGENT: add 'append/overwrite mode' to storages
 * URGENT: default to pretty printing data when no format is specified (dict storage).
@@ -42,37 +39,9 @@
 * URGENT: add dataset features
   - Figure out storability
   - figure out pipeline semantics (`DSFeat` ? `AggregationProcessor` ?)
+* TODO: use generics for processor type in graph nodes classes
 
 # Future implementation Notes
-
-* Regarding the factorization of pipeline DAG's: 
-  - first merge the pipeline in the main DAG, considering all feature inputs as
-    regular inputs
-  - then run a pass to check which inputs are feature and "connect"
-    these to their feature "leaves". This is **necessary** if we don't want 
-    to have to run a dependency algorithm before running the extraction. In this
-    case, dependencies between features are "naturally" expressed through the tree.
-* Regarding the CLI tool (feature ideas, at random):
-  - for an extraction set, required inputs and the features it extracts
-  - display DAG (to PNG or as a matplotlib window)
-  - run an extraction
-    - select one or more features
-    - select the savemode (CSV, DF, Pickle, HDF5)
-    - just test if the required samples load
-  - for a dataset: the sample count
-  
-```shell
-adfluo extract module.my_extractor module.my_dataloader --feats f_a f_b --samples samp_a samp_b
-adfluo extract module.my_extractor module.my_dataloader --format csv
-adfluo extract module.my_extractor module.my_dataloader --format pickle -o filename.pckl
-adfluo extract module.my_extractor module.my_dataloader --test_samples # test all required data fields
-adfluo extract module.my_extractor module.my_dataloader --indexing feature
-adfluo extract module.my_extractor module.my_dataloader --extraction_order sample
-adfluo extract module.my_extractor module.my_dataloader --hide_progress
-adfluo show module.my_extractor
-adfluo show module.my_extractor --dag -o dag.png
-adfluo show module.my_dataloader
-```
 
 * Add a validator class that can validate inputs from the dataset:
 

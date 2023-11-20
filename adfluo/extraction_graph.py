@@ -1,12 +1,14 @@
 from abc import ABCMeta, abstractmethod
-from collections import OrderedDict, deque
-from typing import List, Dict, Any, Optional, Iterable, Deque, Set, TYPE_CHECKING
+from collections import deque
+from typing import List, Dict, Any, Optional, Iterable, Deque, Set, TYPE_CHECKING, Type
 
 from rich.progress import track
 
-from .dataset import DatasetLoader, Sample
-from .exceptions import DuplicateSampleError, BadSampleException
-from .processors import BatchProcessor, SampleProcessor, SampleInputProcessor, SampleFeatureProcessor, Input
+from .cache import BaseCache, SingleValueCache, SampleCache
+from .dataset import DatasetLoader, Sample, DictSample
+from .exceptions import DuplicateSampleError, BadSampleException, BadAggregationException
+from .processors import SampleProcessor, SampleInputProcessor, SampleFeatureProcessor, Input, DatasetFeatureProcessor, \
+    DatasetAggregator, DatasetInputProcessor, DSInput
 from .types import FeatureName, SampleID, SampleData
 from .utils import extraction_policy
 
@@ -66,43 +68,32 @@ class BaseGraphNode(metaclass=ABCMeta):
         self.parents[child_idx] = new_child
 
 
-class CachedNode(BaseGraphNode, metaclass=ABCMeta):
-    """An abstract type for nodes that caches data until it has been retrieved
-    (or "pulled") by all of its child nodes."""
+class SampleProcessorNode(BaseGraphNode):
+    """Wraps a processor. If it has several child node, it's able to cache
+    the result of its processor for each sample."""
 
-    def __init__(self):
+    default_cache_type: Type[BaseCache] = SampleCache
+
+    def __init__(self, processor: SampleProcessor, cache: Optional[BaseCache] = None):
         super().__init__()
-        self._samples_cache: Dict[SampleID, Any] = dict()
-        self._samples_cache_hits: Dict[SampleID, int] = dict()
-        self._failed_samples: Set[SampleID] = set()
+        self.cache = cache if cache is not None else self.default_cache_type()
+        self.processor = processor
 
-    @abstractmethod
     def compute_sample(self, sample: Sample) -> Any:
-        pass
+        try:
+            parents_output = tuple(node[sample] for node in self.parents)
+        except BadSampleException as err:
+            self.cache.add_failed_sample(sample)
+            raise err
 
-    def from_cache(self, sample: Sample):
-        if sample.id in self._failed_samples:
-            raise BadSampleException(sample)
-
-        if sample.id in self._samples_cache:
-            # retrieving the sample and incrementing the cache hits counter
-            cached_output = self._samples_cache[sample.id]
-            self._samples_cache_hits[sample.id] += 1
-            # if the cache hits equals the number of children, the sample's
-            # value can be dropped from the cache
-            if self._samples_cache_hits[sample.id] >= len(self.children):
-                del self._samples_cache[sample.id]
-            return cached_output
-        else:
-            raise KeyError("Sample not in cache")
-
-    def to_cache(self, sample: Sample, data: SampleData):
-        self._samples_cache[sample.id] = data
-        self._samples_cache_hits[sample.id] = 1
-
-    def reset_cache(self):
-        self._samples_cache = dict()
-        self._samples_cache_hits = dict()
+        try:
+            return self.processor(sample, parents_output)
+        except Exception as err:
+            if extraction_policy.skip_errors:
+                self.cache.add_failed_sample(sample)
+                raise BadSampleException(sample)
+            else:
+                raise err
 
     def __getitem__(self, sample: Sample) -> Sample:
         # if node has no children or one child, or if cache is disabled,
@@ -111,86 +102,57 @@ class CachedNode(BaseGraphNode, metaclass=ABCMeta):
             return self.compute_sample(sample)
 
         try:
-            return self.from_cache(sample)
+            return self.cache[sample]
         except KeyError:
             sample_data = self.compute_sample(sample)
-            self.to_cache(sample, sample_data)
+            self.cache[sample] = sample_data
             return sample_data
-
-
-class SampleProcessorNode(CachedNode):
-    """Wraps a processor. If it has several child node, it's able to cache
-    the result of its processor for each sample."""
-
-    def __init__(self, processor: SampleProcessor):
-        super().__init__()
-        self.processor = processor
 
     def __hash__(self):
         return hash((self.__class__, hash(self.processor)))
 
-    def compute_sample(self, sample: Sample) -> Any:
-        try:
-            parents_output = tuple(node[sample] for node in self.parents)
-        except BadSampleException as err:
-            self._failed_samples.add(sample.id)
-            raise err
+    def __str__(self):
+        return str(self.processor)
+
+
+class AggregatorNode(BaseGraphNode):
+
+    def __init__(self, processor: DatasetAggregator):
+        super().__init__()
+        self.cache = SingleValueCache()
+        self.processor = processor
+
+    def compute_aggregation(self) -> Any:
+        all_samples_data = dict()
+        for sample in self.iter_all_samples():
+            all_samples_data[sample] = tuple(node[sample] for node in self.parents)
 
         try:
-            return self.processor(sample, parents_output)
+            return self.processor(all_samples_data)
         except Exception as err:
             if extraction_policy.skip_errors:
-                self._failed_samples.add(sample.id)
-                raise BadSampleException(sample)
+                raise BadAggregationException()
             else:
                 raise err
 
-    def __str__(self):
-        return str(self.processor)
-
-
-class BatchProcessorNode(CachedNode):
-
-    def __init__(self, processor: BatchProcessor):
-        super().__init__()
-        self.processor = processor
-        self.has_computed_batch = False
-        self.batch_cache: OrderedDict[SampleID, Any] = OrderedDict()
+    def __getitem__(self, sample: Sample) -> Sample:
+        # value is always cached as it is just a single value for the whole dataset
+        # NOTE : "sample" here isn't actually useful for cache retrieval
+        try:
+            return self.cache[sample]
+        except KeyError:
+            sample_data = self.compute_aggregation()
+            self.cache[sample] = sample_data
+            return sample_data
 
     def __hash__(self):
         return hash((self.__class__, hash(self.processor)))
 
-    def compute_batch(self):
-        # TODO: error handling mechanism.
-        #  Idea: when the batch compute is wrong, set the whole batch as a bad sample
-        for sample in self.iter_all_samples():
-            parents_output = tuple(node[sample] for node in self.parents)
-            self.batch_cache[sample.id] = parents_output
-        if len(self.parents) == 1:
-            all_samples_data = [data[0] for data in self.batch_cache.values()]
-        else:
-            all_samples_data = list(self.batch_cache.values())
-
-        # TODO: check that
-        self.processor.full_dataset_process(all_samples_data)
-        self.has_computed_batch = True
-
-    def compute_sample(self, sample: Sample) -> Any:
-        if not self.has_computed_batch:
-            self.compute_batch()
-        parents_output = self.batch_cache.pop(sample.id)
-        return self.processor(sample, parents_output)
-
     def __str__(self):
         return str(self.processor)
 
 
-class FeatureNode(SampleProcessorNode):
-    """Doesn't do any processing, just here as a passthrough node from
-    which to pull samples for a specific feature"""
-
-    processor: SampleFeatureProcessor
-
+class BaseFeatureNode(SampleProcessorNode):
     @property
     def feature_name(self) -> str:
         return self.processor.feat_name
@@ -207,10 +169,20 @@ class FeatureNode(SampleProcessorNode):
         return hash(self)
 
 
-class InputNode(SampleProcessorNode):
-    # TODO: doc
-    processor: SampleInputProcessor
+class FeatureNode(BaseFeatureNode):
+    """Doesn't do any processing, just here as a passthrough node from
+    which to pull samples for a specific feature"""
+    processor: SampleFeatureProcessor
 
+
+class DatasetFeatureNode(BaseFeatureNode):
+    """Doesn't do any processing, just here as a passthrough node from
+    which pull a dataset feature"""
+    default_cache_type = SingleValueCache
+    processor: DatasetFeatureProcessor
+
+
+class BaseInputNode(SampleProcessorNode):
     def __init__(self, processor: SampleProcessor, is_feat: bool = False):
         super().__init__(processor)
         self.is_feat = is_feat
@@ -223,11 +195,22 @@ class InputNode(SampleProcessorNode):
         return hash(self)
 
 
+class InputNode(BaseInputNode):
+    # TODO: doc
+    processor: SampleInputProcessor
+
+
+class DatasetInputNode(BaseInputNode):
+    # TODO: doc
+    processor: DatasetInputProcessor
+    default_cache_type = SingleValueCache
+
+
 class RootNode(BaseGraphNode):
 
     def __init__(self):
         super().__init__()
-        self.children: List[InputNode] = []
+        self.children: List[BaseInputNode] = []
         self.parents = None
         self._loader: Optional[DatasetLoader] = None
         self._depth = 0
@@ -237,6 +220,9 @@ class RootNode(BaseGraphNode):
 
     def set_loader(self, loader: DatasetLoader):
         self._loader = loader
+        for child in self.children:
+            if isinstance(child, DatasetInputNode):
+                child.processor.dataset = loader
 
     def iter_all_samples(self) -> Iterable[Sample]:
         return iter(self._loader)
@@ -248,6 +234,7 @@ class RootNode(BaseGraphNode):
         return "Root"
 
     def ancestor_hash(self) -> int:
+        # TODO: document
         return hash(self)
 
 
@@ -269,6 +256,8 @@ class ExtractionDAG:
         self.nodes: List[BaseGraphNode] = list()
         # stores only the feature nodes
         self.feature_nodes: Dict[str, FeatureNode] = dict()
+        # stores only the feature nodes
+        self.dataset_features_nodes: Dict[str, DatasetFeatureNode] = dict()
         # one and only root from the DAG
         self.root_node: RootNode = RootNode()
         self._loader: Optional[DatasetLoader] = None
@@ -280,8 +269,26 @@ class ExtractionDAG:
         return set(self.feature_nodes.keys())
 
     @property
+    def dataset_features(self) -> Set[str]:
+        return set(self.dataset_features_nodes.keys())
+
+    @property
+    def all_features(self):
+        return self.features | self.dataset_features
+
+    @property
     def inputs(self) -> Set[str]:
-        return set(input_node.data_name for input_node in self.root_node.children)
+        return set(input_node.data_name for input_node in self.root_node.children
+                   if isinstance(input_node, InputNode))
+
+    @property
+    def dataset_inputs(self) -> Set[str]:
+        return set(input_node.data_name for input_node in self.root_node.children
+                   if isinstance(input_node, DatasetInputNode))
+
+    @property
+    def all_inputs(self):
+        return self.inputs | self.dataset_inputs
 
     def genealogical_search(self, searched_node: BaseGraphNode) -> Optional[BaseGraphNode]:
         """Search the DAG for a node that is the same node and has the same
@@ -292,13 +299,23 @@ class ExtractionDAG:
         return None
 
     def add_pipeline(self, pipeline: 'ExtractionPipeline'):
-        feature_nodes: List[FeatureNode] = pipeline.outputs
-        nodes_stack: Deque[SampleProcessorNode] = deque(feature_nodes)
+        # first, checking that the pipeline is right
+        pipeline.check()
+
+        feature_nodes: List[BaseFeatureNode] = pipeline.outputs
+        nodes_stack: Deque[BaseGraphNode] = deque(feature_nodes)
         # registering feature nodes (and checking that they're not already present)
         for feat_node in feature_nodes:
             # TODO : better error
-            assert feat_node.processor.feat_name not in self.feature_nodes
-            self.feature_nodes[feat_node.processor.feat_name] = feat_node
+            # checking that there isn't already a feature named like the ones
+            # from this pipeline
+            feat_name = feat_node.processor.feat_name
+            assert feat_name not in self.all_features, \
+                f"Duplicate name for feature name '{feat_name}'"
+            if isinstance(feat_node, FeatureNode):
+                self.feature_nodes[feat_name] = feat_node
+            elif isinstance(feat_node, DatasetFeatureNode):
+                self.dataset_features_nodes[feat_name] = feat_node
 
         # algorithm outline:
         # stack = list(feature leafs)
@@ -309,16 +326,23 @@ class ExtractionDAG:
         # - else, add parent nodes to stack
         while nodes_stack:
             node = nodes_stack.pop()
-            # TODO: document this condition
-            if isinstance(node, FeatureNode) and not node.parents:
-                node = InputNode(Input(node.feature_name), is_feat=True)
+            # This condition is for nodes that are used as inputs.
+            # These will be 'dependency-solved' later on, for now
+            # treating them as inputs
+            if isinstance(node, BaseFeatureNode) and not node.parents:
+                # TODO : adapt this for dual types of inputs
+                if isinstance(node, FeatureNode):
+                    node = InputNode(Input(node.feature_name), is_feat=True)
+                else:
+                    node = DatasetInputNode(DSInput(node.feature_name), is_feat=True)
+
 
             self.nodes.append(node)
             # an input node has to be directly connected to the root node
             # NOTE: if an input node is put on the stack, it means that this
-            # particular input node wasn't already present as a rootnode's child
-            if isinstance(node, InputNode):
-                assert node.data_name not in self.inputs
+            # particular input node wasn't already present as a rootnode's children
+            if isinstance(node, BaseInputNode):
+                assert node.data_name not in self.all_inputs
                 node.parents = [self.root_node]
                 self.root_node.children.append(node)
                 continue
@@ -372,6 +396,7 @@ class ExtractionDAG:
         """Removing features from the DAG (by specifying either the ones that should be
         removed on the ones that should be kept). This is used to optimize the extraction
         when only certain features are needed."""
+        # TODO: adapt to the DS feats
 
         assert bool(keep_only) != bool(remove)
         if keep_only is not None:
@@ -394,7 +419,7 @@ class ExtractionDAG:
         # - if a node is a feature node that shouldn't be removed, it's skipped
         while stack:
             node = stack.pop()
-            if isinstance(node, FeatureNode) and node.feature_name in kept_features:
+            if isinstance(node, BaseFeatureNode) and node.feature_name in kept_features:
                 continue
 
             self.nodes.remove(node)
@@ -453,4 +478,12 @@ class ExtractionDAG:
                 feat_dict[feature_name] = feature_node[sample]
             except BadSampleException:
                 pass
+        return feat_dict
+
+    def extract_dataset_features(self, show_progress: bool):
+        feat_dict = {}
+        fake_sample = DictSample({}, 0)
+        for feature_name, feature_node in track(self.dataset_features_nodes.items(),
+                                                disable=not show_progress):
+            feat_dict[feature_name] = feature_node[fake_sample]
         return feat_dict

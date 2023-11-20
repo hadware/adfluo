@@ -1,15 +1,17 @@
 import warnings
 from typing import List, Union, Dict, Any
 
+from .cache import SingleValueCache
 from .dataset import Sample, DictSample
 from .exceptions import PipelineBuildError, PIPELINE_TYPE_ERROR
-from .extraction_graph import SampleProcessorNode, BatchProcessorNode, FeatureNode, InputNode, FeatureName
+from .extraction_graph import SampleProcessorNode, FeatureNode, InputNode, FeatureName, AggregatorNode, BaseInputNode, \
+    BaseFeatureNode, DatasetInputNode, DatasetFeatureNode
 from .plotting import plot_dag
-from .processors import ProcessorBase, SampleProcessor, BatchProcessor, \
-    Input, Feat
+from .processors import ProcessorBase, SampleProcessor, \
+    Input, Feat, DatasetAggregator
 
 PipelineElement = Union['ExtractionPipeline', ProcessorBase]
-ProcessorNode = Union[SampleProcessorNode, BatchProcessorNode]
+ProcessorNode = Union[SampleProcessorNode, AggregatorNode]
 
 
 def wrap_processor(proc: ProcessorBase) -> ProcessorNode:
@@ -17,8 +19,8 @@ def wrap_processor(proc: ProcessorBase) -> ProcessorNode:
         return FeatureNode(proc)
     elif isinstance(proc, Input):
         return InputNode(proc)
-    elif isinstance(proc, BatchProcessor):
-        return BatchProcessorNode(proc)
+    elif isinstance(proc, DatasetAggregator):
+        return AggregatorNode(proc)
     elif isinstance(proc, SampleProcessor):
         return SampleProcessorNode(proc)
     else:
@@ -41,6 +43,43 @@ class ExtractionPipeline:
     def nb_outputs(self):
         return len(self.outputs)
 
+    def check_aggregations(self):
+        stack: List[ProcessorNode] = [node for node in self.all_nodes
+                                      if isinstance(node, (DatasetInputNode, AggregatorNode))]
+        node_added_to_stack = True
+        single_value_nodes = []
+        while node_added_to_stack:
+            node_added_to_stack = False
+            node = stack.pop(0)
+
+            # skipping input nodes/agg nodes
+            if isinstance(node, (DatasetInputNode, AggregatorNode)):
+                single_value_nodes.append(node)
+                stack += node.children
+                node_added_to_stack = True
+                continue
+
+            # end of branch
+            if isinstance(node, DatasetFeatureNode):
+                continue
+
+            # merger nodes situation
+            if len(node.parents) > 1:
+                parents_in_candidates = ((parent_node in single_value_nodes)
+                                         for parent_node in node.parents)
+                if not all(parents_in_candidates):
+                    stack.append(node)
+                    continue
+
+            # remaining situation is : we have a node that's a 'single-value' candidate
+            # and its cache has to be changed.
+            # children nodes can also be added to the stack
+            single_value_nodes.append(node)
+            # setting cache to single value
+            node.cache = SingleValueCache()
+            stack += node.children
+            node_added_to_stack = True
+
     def check(self):
         """
         Checks that :
@@ -51,12 +90,19 @@ class ExtractionPipeline:
 
         # TODO : better error
         for node in self.inputs:
-            assert isinstance(node, (InputNode, FeatureNode))
+            assert isinstance(node, (BaseInputNode, BaseFeatureNode))
         for node in self.outputs:
-            assert isinstance(node, FeatureNode)
+            assert isinstance(node, BaseFeatureNode)
+        ends = set(self.inputs + self.outputs)
         for node in self.all_nodes:
-            if node not in self.inputs + self.outputs:
-                assert not isinstance(node, (FeatureNode, InputNode))
+            if node not in ends:
+                assert not isinstance(node, (BaseFeatureNode, BaseInputNode))
+
+        # then, checking aggregations if needed
+        for node in self.all_nodes:
+            if isinstance(node, (DatasetInputNode, AggregatorNode)):
+                self.check_aggregations()
+                break
 
     def append(self, proc: ProcessorBase):
         new_node = wrap_processor(proc)
@@ -134,7 +180,11 @@ class ExtractionPipeline:
         return self
 
     def __call__(self, sample: Union[Sample, Dict[str, Any]]) -> Dict[FeatureName, Any]:
-        # TODO: add support for datasets
+        # TODO: add support for datasets:
+        #  - actually any input is a dataset (wrap sample with fake dataset)
+        #  - add a rootnode and then remove it (needed for aggs)
+        self.check()
+
         if isinstance(sample, dict):
             sample = DictSample(sample, 0)
         output_dict: Dict[FeatureName, Any] = {}

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Iterable, List, Dict, Any, Union, Sequence, Sized
+from typing import Iterable, List, Dict, Any, Union, Sized
 
 from adfluo.types import SampleID
 
@@ -54,6 +54,10 @@ class DatasetLoader(ABC, Iterable, Sized):
     @abstractmethod
     def __iter__(self) -> Iterable[Sample]:
         raise NotImplementedError()
+
+    def __getitem__(self, data_name: str) -> Any:
+        # TODO: doc
+        pass
 
 
 class ListLoader(DatasetLoader):

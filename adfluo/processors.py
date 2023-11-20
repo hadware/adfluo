@@ -1,5 +1,5 @@
 import sys
-from abc import ABC, abstractmethod
+from abc import abstractmethod, ABCMeta
 from dataclasses import dataclass
 from dis import get_instructions
 from inspect import signature
@@ -7,6 +7,7 @@ from typing import Any, List, Tuple, Callable, TYPE_CHECKING, Hashable, Optional
 
 from sortedcontainers import SortedDict
 
+from . import DatasetLoader
 from .dataset import Sample
 from .exceptions import InvalidInputData
 from .storage import StorageProtocol
@@ -37,7 +38,7 @@ def hparam(name: str, type: Optional[Type] = None) -> Any:
     return ExtractorHyperParameter(name, type)
 
 
-class ProcessorBase(ABC):
+class ProcessorBase(metaclass=ABCMeta):
     """Abstract base class for a processor from the feature extraction pipeline"""
 
     def __init__(self, **kwargs):
@@ -158,7 +159,7 @@ class ProcessorBase(ABC):
         return new_pipeline
 
 
-class SampleProcessor(ProcessorBase):
+class SampleProcessor(ProcessorBase, metaclass=ABCMeta):
     """Processes one sample after the other, independently"""
 
     def __call__(self, sample: Sample, sample_data: Tuple[Any]) -> Any:
@@ -240,6 +241,8 @@ F.__doc__ = FunctionWrapperProcessor.__doc__
 
 
 class ListWrapperProcessor(SampleProcessor):
+    """Akin to a "map" function, applied on a list of per-sample data"""
+
     # TODO: double check and write some tests
 
     def __init__(self, proc: SampleProcessor):
@@ -274,17 +277,6 @@ L = ListWrapperProcessor
 L.__doc__ = ListWrapperProcessor.__doc__
 
 
-class BatchProcessor(SampleProcessor):
-    """Processor class that requires the full list of samples from the
-    dataset to be able to process individual samples"""
-
-    @abstractmethod
-    def full_dataset_process(self, samples_data: List[Union[Any, Tuple]]):
-        """Processes the full dataset of samples. Doesn't return anything,
-        store the results as instance attributes"""
-        pass
-
-
 class SampleInputProcessor(SampleProcessor):
     """Processor that pulls data from samples."""
     data_name: str = param()
@@ -309,6 +301,31 @@ Input = SampleInputProcessor
 Input.__doc__ = SampleInputProcessor.__doc__
 
 
+class DatasetInputProcessor(SampleProcessor):
+    """Processor that pulls data from a dataset."""
+    data_name: str = param()
+
+    def __init__(self, data_name: str):
+        super().__init__(data_name=data_name)
+        self.validator_fn: Optional[ValidatorFunction] = None
+        self.dataset: DatasetLoader = None
+
+    def process(self, *args) -> Any:
+        data = self.dataset[self.data_name]
+
+        if self.validator_fn is not None:
+            if not self.validator_fn(data):
+                raise InvalidInputData(self.data_name, self.current_sample.id)
+        return data
+
+    def __str__(self):
+        return f"DSInput({self.data_name})"
+
+
+DSInput = DatasetInputProcessor
+DSInput.__doc__ = DatasetInputProcessor.__doc__
+
+
 class PrinterProcessor(SampleProcessor):
     name: str = param()
 
@@ -323,7 +340,7 @@ class PrinterProcessor(SampleProcessor):
 Printer = PrinterProcessor()
 
 
-class SampleFeatureProcessor(SampleProcessor):
+class BaseFeat(SampleProcessor):
     """A passthrough processor used as a """
     feat_name: str = param()
 
@@ -334,24 +351,36 @@ class SampleFeatureProcessor(SampleProcessor):
     def process(self, *args) -> Tuple:
         return args[0]
 
+
+class SampleFeatureProcessor(BaseFeat):
+    # TODO: doc
     def __str__(self):
         return f"Feat({self.feat_name})"
+
+
+class DatasetFeatureProcessor(BaseFeat):
+    """A passthrough processor used as a """
+
+    # TODO: doc
+    def __str__(self):
+        return f"DSFeat({self.feat_name})"
 
 
 Feat = SampleFeatureProcessor
 Feat.__doc__ = SampleInputProcessor.__doc__
 
+DSFeat = DatasetFeatureProcessor
+DSFeat.__doc__ = DatasetFeatureProcessor.__doc__
+
 
 class DatasetAggregator(ProcessorBase):
 
     @abstractmethod
-    def aggregate(self, samples_data: List[Union[Any, Tuple]]) -> Any:
-        pass
-
-    def process(self, *args) -> Any:
+    def aggregate(self, samples_data: List[Union[Any, Tuple[Any, ...]]]) -> Any:
         pass
 
     def __call__(self, *args, **kwargs):
+        # Call aggregate
         pass  # TODO
 
 

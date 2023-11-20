@@ -13,6 +13,9 @@ class BadSampleException(RuntimeError):
         self.sample = sample
         super().__init__(*args)
 
+class BadAggregationException(RuntimeError):
+    pass
+
 
 class UnsolvedFeatureDependencyError(RuntimeError):
     pass
