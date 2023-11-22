@@ -79,7 +79,7 @@ class SingleValueCache(BaseCache):
         self._has_been_cached = True
 
     def __getitem__(self, sample: Sample) -> SampleData:
-        if self._has_been_cached:
+        if not self._has_been_cached:
             raise KeyError("Sample not in cache")
         else:
             return self._cached_value

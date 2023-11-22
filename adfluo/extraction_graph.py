@@ -1,6 +1,7 @@
+import sys
 from abc import ABCMeta, abstractmethod
 from collections import deque
-from typing import List, Dict, Any, Optional, Iterable, Deque, Set, TYPE_CHECKING, Type
+from typing import List, Dict, Any, Optional, Iterable, Deque, Set, TYPE_CHECKING, Type, Tuple
 
 from rich.progress import track
 
@@ -10,7 +11,7 @@ from .exceptions import DuplicateSampleError, BadSampleException, BadAggregation
 from .processors import SampleProcessor, SampleInputProcessor, SampleFeatureProcessor, Input, DatasetFeatureProcessor, \
     DatasetAggregator, DatasetInputProcessor, DSInput
 from .types import FeatureName, SampleID, SampleData
-from .utils import extraction_policy
+from .utils import extraction_policy, logger
 
 if TYPE_CHECKING:
     from .pipeline import ExtractionPipeline
@@ -86,13 +87,22 @@ class SampleProcessorNode(BaseGraphNode):
             self.cache.add_failed_sample(sample)
             raise err
 
+        # trying to process the sample. If an error is raised, two
+        # possible outcomes:
+        # - if we don't skip errors, than the error is raised
+        # (with a cleaner call stack)
+        # - otherwise, we just we propagate a badsample exeception to notify the rest of the DAG
+        #  and produce a warning
         try:
             return self.processor(sample, parents_output)
         except Exception as err:
             if extraction_policy.skip_errors:
+                logger.warning(f"Got error in processor {type(self.processor).__name__} on sample {sample.id} : {str(err)}")
                 self.cache.add_failed_sample(sample)
                 raise BadSampleException(sample)
             else:
+                tb = sys.exc_info()[2]
+                err = type(err)(f"In processor {repr(self)}, on sample {sample.id} : {str(err)}").with_traceback(tb)
                 raise err
 
     def __getitem__(self, sample: Sample) -> Sample:
@@ -116,6 +126,7 @@ class SampleProcessorNode(BaseGraphNode):
 
 
 class AggregatorNode(BaseGraphNode):
+    processor: DatasetAggregator
 
     def __init__(self, processor: DatasetAggregator):
         super().__init__()
@@ -125,7 +136,7 @@ class AggregatorNode(BaseGraphNode):
     def compute_aggregation(self) -> Any:
         all_samples_data = dict()
         for sample in self.iter_all_samples():
-            all_samples_data[sample] = tuple(node[sample] for node in self.parents)
+            all_samples_data[sample.id] = tuple(node[sample] for node in self.parents)
 
         try:
             return self.processor(all_samples_data)
@@ -482,11 +493,10 @@ class ExtractionDAG:
                 pass
         return feat_dict
 
-    def extract_dataset_features(self, show_progress: bool, subset: Optional[Set[set]] = None):
-        feat_dict = {}
+    def extract_dataset_features(self, show_progress: bool,
+                                 subset: Optional[Set[str]] = None) -> Iterable[Tuple[FeatureName, Any]]:
         for feature_name, feature_node in track(self.dataset_features_nodes.items(),
                                                 disable=not show_progress):
             if subset is not None and feature_name not in subset:
                 continue
-            feat_dict[feature_name] = feature_node()
-        return feat_dict
+            yield feature_name, feature_node()

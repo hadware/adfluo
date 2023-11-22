@@ -40,6 +40,12 @@
   - Figure out storability
   - figure out pipeline semantics (`DSFeat` ? `AggregationProcessor` ?)
 * TODO: use generics for processor type in graph nodes classes
+* EASY: use fnmatch (https://docs.python.org/3/library/fnmatch.html#fnmatch.filter) 
+  when using features restrictions or inclusions in CLI
+* EASY: variable-length inputs using `inspect.signature(f).parameters["args"].kind` on `process` method
+* EASY: check that the BadSampleException mechanism works properly (in tests)
+* EASY: create NullCache that stores nothing to simplify "if cache" logic?
+* MAYBE: use __get__ on hparams classes to simplify things a bit (maybe?)
 
 # Future implementation Notes
 

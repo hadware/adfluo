@@ -1,4 +1,3 @@
-import sys
 from abc import abstractmethod, ABCMeta
 from dataclasses import dataclass
 from dis import get_instructions
@@ -11,7 +10,7 @@ from . import DatasetLoader
 from .dataset import Sample
 from .exceptions import InvalidInputData
 from .storage import StorageProtocol
-from .utils import logger, extraction_policy
+from .types import SampleID
 from .validator import ValidatorFunction
 
 if TYPE_CHECKING:
@@ -73,18 +72,18 @@ class ProcessorBase(metaclass=ABCMeta):
         return self._current_sample
 
     @property
+    @abstractmethod
+    def signature(self):
+        pass
+
+    @property
     def nb_args(self):
-        return len(signature(self.process).parameters)
+        return len(self.signature.parameters)
 
     @property
     @abstractmethod
     def output_type(self):
         pass
-
-    @abstractmethod
-    def process(self, *args) -> Any:
-        """Processes just one sample"""
-        raise NotImplemented()
 
     @property
     def class_params(self) -> Set[str]:
@@ -163,31 +162,14 @@ class ProcessorBase(metaclass=ABCMeta):
 class SampleProcessor(ProcessorBase, metaclass=ABCMeta):
     """Processes one sample after the other, independently"""
 
-    def __call__(self, sample: Sample, sample_data: Tuple[Any]) -> Any:
+    @property
+    def signature(self):
+        return signature(self.process())
 
-        # trying to process the sample. If an error is raised, two
-        # possible outcomes:
-        # - if we have to fail on error, than the error is raised
-        # (with a cleaner call stack)
-        # - if not, we just replace the processed output with None
-        # and print an error message
-        try:
-            self._current_sample = sample
-            processed_sample_data = self.process(*sample_data)
-        except Exception as e:
-            tb = sys.exc_info()[2]
-            err = type(e)(("In processor %s, on sample %s : "
-                           % (repr(self), sample.id)) +
-                          str(e)).with_traceback(tb)
-            print(extraction_policy.skip_errors)
-            if extraction_policy.skip_errors:
-                logger.warning("Got error in processor %s on sample %s : %s" %
-                               (type(self).__name__, sample.id, str(e)))
-                return None
-            else:
-                raise err
-        else:
-            return processed_sample_data
+    @abstractmethod
+    def process(self, *args) -> Any:
+        """Processes just one sample"""
+        raise NotImplemented()
 
     @property
     def output_type(self):
@@ -195,6 +177,10 @@ class SampleProcessor(ProcessorBase, metaclass=ABCMeta):
             return self.process.__annotations__["return"]
         except KeyError:
             return Any
+
+    def __call__(self, sample: Sample, sample_data: Tuple[Any]) -> Any:
+        self._current_sample = sample
+        return self.process(*sample_data)
 
 
 class FunctionWrapperMixin:
@@ -206,8 +192,8 @@ class FunctionWrapperMixin:
             raise ValueError("Function must have at least one parameter")
 
     @property
-    def nb_args(self):
-        return len(signature(self.fun).parameters)
+    def signature(self):
+        return signature(self.fun)
 
     def __hash__(self):
         """Hashes the disassembled code of the wrapped function."""
@@ -365,7 +351,6 @@ class DatasetFeatureProcessor(BaseFeat):
     """A passthrough processor used to indicate Dataset Features (DSFeats)"""
     feat_name: str = param()
 
-
     # TODO: doc
     def __str__(self):
         return f"DSFeat({self.feat_name})"
@@ -378,16 +363,30 @@ DSFeat = DatasetFeatureProcessor
 DSFeat.__doc__ = DatasetFeatureProcessor.__doc__
 
 
-class DatasetAggregator(ProcessorBase):
+class DatasetAggregator(ProcessorBase, metaclass=ABCMeta):
+
+    @property
+    def signature(self):
+        return signature(self.aggregate)
+
+    @property
+    def output_type(self):
+        try:
+            return self.aggregate.__annotations__["return"]
+        except KeyError:
+            return Any
 
     @abstractmethod
-    def aggregate(self, samples_data: List[Union[Any, Tuple[Any, ...]]]) -> Any:
+    def aggregate(self, samples_data: Union[List[Any], List[Tuple[Any, ...]]]) -> Any:
         pass
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, samples_data: Dict[SampleID, Tuple[Any, ...]]):
         # Call aggregate
-        pass  # TODO
-
+        first_value = next(iter(samples_data.values()))
+        if len(first_value) == 1:
+            return self.aggregate([t[0] for t in samples_data.values()])
+        else:
+            return self.aggregate(list(samples_data.values()))
 
 class FunctionWrapperAggregator(DatasetAggregator, FunctionWrapperMixin):
 
@@ -398,4 +397,4 @@ class FunctionWrapperAggregator(DatasetAggregator, FunctionWrapperMixin):
         return self.fun(samples_data)
 
 
-Aggregator = FunctionWrapperAggregator
+Agg = FunctionWrapperAggregator

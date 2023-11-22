@@ -59,14 +59,25 @@ class Extractor:
                 feat_node: FeatureNode
                 self.dropped_features.add(feat_node.processor.feat_name)
 
-    def extract_aggregations(self):
+    def extract_aggregations(self, dataset: Dataset):
         """Temporary (?) method to extract aggregations for dataset features that have a
         storage protocol"""
-        for feat_name, feat_node in track(self.extraction_DAG.dataset_features_nodes.items(),
-                                          disable=not self.show_progress):
+        if self.hparams:
+            raise RuntimeError(f"Hyperparameters {', '.join(self.hparams)} still need to be set.")
+
+        if isinstance(dataset, list):
+            dataset = ListLoader(dataset)
+
+        self.extraction_DAG.set_loader(dataset)
+
+        output_dict = {}
+        for feat_name, feat_value in self.extraction_DAG.extract_dataset_features(self.show_progress):
+            feat_node = self.extraction_DAG.dataset_features_nodes[feat_name]
             if feat_node.processor.custom_storage is None:
-                continue
-            feat_node.processor.custom_storage.store_aggregation(feat_name, feat_node())
+                output_dict[feat_name] = feat_value
+            else:
+                feat_node.processor.custom_storage.store_aggregation(feat_name, feat_node())
+        return output_dict
 
     def _extract(self,
                  dataset: Dataset,
