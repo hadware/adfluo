@@ -35,6 +35,10 @@ class BaseGraphNode(metaclass=ABCMeta):
     def __str__(self):
         pass
 
+    @abstractmethod
+    def __getitem__(self, sample: Sample) -> SampleData:
+        pass
+
     @property
     def depth(self):
         if self._depth is None:
@@ -50,13 +54,6 @@ class BaseGraphNode(metaclass=ABCMeta):
             raise RuntimeError("Cannot retrieve all samples if no parent is set")
         return self.parents[0].iter_all_samples()
 
-    def ancestral_hash(self) -> int:
-        parents_hashes = tuple(parent.ancestral_hash() for parent in self.parents)
-        return hash((self, *parents_hashes))
-
-    @abstractmethod
-    def __getitem__(self, sample: Sample) -> SampleData:
-        pass
 
     def replace_parent(self, old_parent: 'BaseGraphNode',
                        new_parent: 'BaseGraphNode'):
@@ -120,7 +117,7 @@ class SampleProcessorNode(BaseGraphNode):
             return sample_data
 
     def __hash__(self):
-        return hash((self.__class__, hash(self.processor)))
+        return hash(((self.__class__, self.processor), tuple(self.parents)))
 
     def __str__(self):
         return str(self.processor)
@@ -158,7 +155,7 @@ class AggregatorNode(BaseGraphNode):
             return sample_data
 
     def __hash__(self):
-        return hash((self.__class__, hash(self.processor)))
+        return hash(((self.__class__, self.processor), tuple(self.parents)))
 
     def __str__(self):
         return str(self.processor)
@@ -166,6 +163,11 @@ class AggregatorNode(BaseGraphNode):
 
 class BaseFeatureNode(SampleProcessorNode):
     processor: BaseFeat
+
+    def __hash__(self):
+        # Ancestor hash for Feature nodes are just a hash of
+        # their class and their feature_name, basically (no ancestors)
+        return hash((self.__class__, self.processor))
 
     @property
     def feature_name(self) -> str:
@@ -178,11 +180,7 @@ class BaseFeatureNode(SampleProcessorNode):
                                f"Node has no parents.")
         return super().compute_sample(sample)
 
-    def ancestral_hash(self) -> int:
-        # Ancestor hash for Feature nodes are just a hash of
-        # their class and their feature_name, basically
-        # (no ancestors)
-        return hash(self)
+
 
 
 class FeatureNode(BaseFeatureNode):
@@ -207,12 +205,14 @@ class BaseInputNode(SampleProcessorNode):
         super().__init__(processor)
         self.is_feat = is_feat
 
+    def __hash__(self):
+        # Ancestor hash for Input nodes are just a hash of
+        # their class and their input_name, basically (no ancestors)
+        return hash((self.__class__, self.processor))
+
     @property
     def data_name(self) -> str:
         return self.processor.data_name
-
-    def ancestral_hash(self) -> int:
-        return hash(self)
 
 
 class InputNode(BaseInputNode):
@@ -253,10 +253,6 @@ class RootNode(BaseGraphNode):
     def __str__(self):
         return "Root"
 
-    def ancestral_hash(self) -> int:
-        # TODO: document
-        return hash(self)
-
 
 class ExtractionDAG:
     """
@@ -273,7 +269,7 @@ class ExtractionDAG:
     def __init__(self):
         # stores all the processing (input, feature and processor) nodes from
         # the dag
-        self.nodes: List[BaseGraphNode] = list()
+        self.nodes: Set[BaseGraphNode] = set()
         # stores only the feature nodes
         self.feature_nodes: Dict[str, FeatureNode] = dict()
         # stores only the feature nodes
@@ -314,7 +310,7 @@ class ExtractionDAG:
         """Search the DAG for a node that is the same node and has the same
         ancestry as the searched node. If nothing is found, returns None"""
         for dag_node in self.nodes:
-            if dag_node.ancestral_hash() == searched_node.ancestral_hash():
+            if dag_node == searched_node:
                 return dag_node
         return None
 
@@ -343,9 +339,10 @@ class ExtractionDAG:
         # - check if parent nodes' hash is found somewhere in the tree
         # - if parent node hash is found, connect current node to DAG node
         # - else, add parent nodes to stack
-        added_nodes_ancestral_hashes: Set[int] = set()
         while nodes_stack:
             node = nodes_stack.pop()
+            if node in self.nodes:
+                continue
             # This condition is for feature nodes that are used as inputs.
             # These will be 'dependency-solved' later on, for now
             # treating them as inputs
@@ -357,7 +354,7 @@ class ExtractionDAG:
                 else:
                     node = DatasetInputNode(DSInput(node.feature_name), is_feat=True)
 
-            self.nodes.append(node)
+            self.nodes.add(node)
             # an input node has to be directly connected to the root node
             # NOTE: if an input node is put on the stack, it means that this
             # particular input node wasn't already present as a rootnode's children
@@ -375,10 +372,7 @@ class ExtractionDAG:
                     # add the current node as a child to the dag parent
                     dag_node.children.append(node)
                 else:
-                    # quick and dirty way to check that nodes aren't added twice to the stack
-                    if node_parent.ancestral_hash() not in added_nodes_ancestral_hashes:
-                        nodes_stack.appendleft(node_parent)
-                        added_nodes_ancestral_hashes.add(node_parent.ancestral_hash())
+                    nodes_stack.appendleft(node_parent)
 
         self._needs_dependency_solving = True
 
