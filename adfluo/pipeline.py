@@ -56,7 +56,8 @@ class ExtractionPipeline:
             node_added_to_stack = False
             node = stack.pop(0)
 
-            assert not isinstance(node, FeatureNode)
+            assert not isinstance(node, FeatureNode), \
+                f"Cannot have a sample feature {str(node)} after an aggregation or dataset input"
 
             # skipping input nodes/agg nodes
             if isinstance(node, (DatasetInputNode, AggregatorNode)):

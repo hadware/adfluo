@@ -164,7 +164,7 @@ class SampleProcessor(ProcessorBase, metaclass=ABCMeta):
 
     @property
     def signature(self):
-        return signature(self.process())
+        return signature(self.process)
 
     @abstractmethod
     def process(self, *args) -> Any:
@@ -325,10 +325,12 @@ class PrinterProcessor(SampleProcessor):
 
 
 Printer = PrinterProcessor()
+Pass = F(lambda x: x)
 
 
-class BaseFeat(SampleProcessor):
-    """A passthrough processor used as a """
+class BaseFeat(SampleProcessor, metaclass=ABCMeta):
+    """Base class for Features and Dataset Features"""
+    feat_name : str
 
     def __init__(self, feat_name: str, storage: Optional[StorageProtocol] = None):
         super().__init__(feat_name=feat_name)
@@ -388,7 +390,8 @@ class DatasetAggregator(ProcessorBase, metaclass=ABCMeta):
         else:
             return self.aggregate(list(samples_data.values()))
 
-class FunctionWrapperAggregator(DatasetAggregator, FunctionWrapperMixin):
+
+class FunctionWrapperAggregator(FunctionWrapperMixin, DatasetAggregator):
 
     def __repr__(self):
         return f"Aggregator({self.fun.__name__})"

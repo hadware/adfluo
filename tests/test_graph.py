@@ -242,3 +242,22 @@ def test_pruning():
         print(str(node))
     assert len(dag.nodes) == 5  # input, F(a), Feat(plus_one), F(b), Feat("double")
     assert len(dag.feature_nodes["double"].parents[0].parents[0].children) == 1
+
+
+def test_rombus_DAG():
+    dag = ExtractionDAG()
+    dag.add_pipeline(
+        Input("input_a")
+        >> F(lambda x: x + 3)
+        >> (F(lambda x: x + 1) | F(lambda x: x / 2))
+        >> F(lambda x, y: x + y)
+        >> Feat("feat_a")
+    )
+
+def test_duplicate_feature():
+    dag = ExtractionDAG()
+    with pytest.raises(AssertionError, match="Duplicate name for feature name 'feat_a'"):
+        dag.add_pipeline(
+            Input("input_a")
+            >> (Feat("feat_a") | Feat("feat_a"))
+        )

@@ -70,7 +70,7 @@ def plot_dag(dag: Union['ExtractionPipeline', 'ExtractionDAG'],
     # a layer
     dag_graph = nx.DiGraph()
     for node in all_nodes:
-        dag_graph.add_node(node.ancestor_hash(), layer=node.depth, label=str(node))
+        dag_graph.add_node(node.ancestral_hash(), layer=node.depth, label=str(node))
 
     # adding edges
     for node in all_nodes:
@@ -81,8 +81,8 @@ def plot_dag(dag: Union['ExtractionPipeline', 'ExtractionDAG'],
             output_type = "Sample"
         if output_type is Any:
             output_type = None
-        dag_graph.add_edges_from(product([node.ancestor_hash()],
-                                         [child.ancestor_hash() for child in node.children]),
+        dag_graph.add_edges_from(product([node.ancestral_hash()],
+                                         [child.ancestral_hash() for child in node.children]),
                                  output_type=output_type)
 
     # rendering graph layout
@@ -90,7 +90,7 @@ def plot_dag(dag: Union['ExtractionPipeline', 'ExtractionDAG'],
                                           scale=3)
 
     # building labels and labels repositioning (under or over the node)
-    label_dict = {node.ancestor_hash(): str(node) for node in all_nodes}
+    label_dict = {node.ancestral_hash(): str(node) for node in all_nodes}
     labels_layout = {}
 
     for k, v in graph_layout.items():

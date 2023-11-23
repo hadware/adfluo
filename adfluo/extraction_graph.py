@@ -9,7 +9,7 @@ from .cache import BaseCache, SingleValueCache, SampleCache
 from .dataset import DatasetLoader, Sample, DictSample
 from .exceptions import DuplicateSampleError, BadSampleException, BadAggregationException
 from .processors import SampleProcessor, SampleInputProcessor, SampleFeatureProcessor, Input, DatasetFeatureProcessor, \
-    DatasetAggregator, DatasetInputProcessor, DSInput
+    DatasetAggregator, DatasetInputProcessor, DSInput, BaseFeat
 from .types import FeatureName, SampleID, SampleData
 from .utils import extraction_policy, logger
 
@@ -50,8 +50,8 @@ class BaseGraphNode(metaclass=ABCMeta):
             raise RuntimeError("Cannot retrieve all samples if no parent is set")
         return self.parents[0].iter_all_samples()
 
-    def ancestor_hash(self) -> int:
-        parents_hashes = tuple(parent.ancestor_hash() for parent in self.parents)
+    def ancestral_hash(self) -> int:
+        parents_hashes = tuple(parent.ancestral_hash() for parent in self.parents)
         return hash((self, *parents_hashes))
 
     @abstractmethod
@@ -97,7 +97,8 @@ class SampleProcessorNode(BaseGraphNode):
             return self.processor(sample, parents_output)
         except Exception as err:
             if extraction_policy.skip_errors:
-                logger.warning(f"Got error in processor {type(self.processor).__name__} on sample {sample.id} : {str(err)}")
+                logger.warning(
+                    f"Got error in processor {type(self.processor).__name__} on sample {sample.id} : {str(err)}")
                 self.cache.add_failed_sample(sample)
                 raise BadSampleException(sample)
             else:
@@ -164,6 +165,8 @@ class AggregatorNode(BaseGraphNode):
 
 
 class BaseFeatureNode(SampleProcessorNode):
+    processor: BaseFeat
+
     @property
     def feature_name(self) -> str:
         return self.processor.feat_name
@@ -175,8 +178,10 @@ class BaseFeatureNode(SampleProcessorNode):
                                f"Node has no parents.")
         return super().compute_sample(sample)
 
-    def ancestor_hash(self) -> int:
-        # TODO: document
+    def ancestral_hash(self) -> int:
+        # Ancestor hash for Feature nodes are just a hash of
+        # their class and their feature_name, basically
+        # (no ancestors)
         return hash(self)
 
 
@@ -206,7 +211,7 @@ class BaseInputNode(SampleProcessorNode):
     def data_name(self) -> str:
         return self.processor.data_name
 
-    def ancestor_hash(self) -> int:
+    def ancestral_hash(self) -> int:
         return hash(self)
 
 
@@ -248,7 +253,7 @@ class RootNode(BaseGraphNode):
     def __str__(self):
         return "Root"
 
-    def ancestor_hash(self) -> int:
+    def ancestral_hash(self) -> int:
         # TODO: document
         return hash(self)
 
@@ -309,7 +314,7 @@ class ExtractionDAG:
         """Search the DAG for a node that is the same node and has the same
         ancestry as the searched node. If nothing is found, returns None"""
         for dag_node in self.nodes:
-            if dag_node.ancestor_hash() == searched_node.ancestor_hash():
+            if dag_node.ancestral_hash() == searched_node.ancestral_hash():
                 return dag_node
         return None
 
@@ -338,13 +343,15 @@ class ExtractionDAG:
         # - check if parent nodes' hash is found somewhere in the tree
         # - if parent node hash is found, connect current node to DAG node
         # - else, add parent nodes to stack
+        added_nodes_ancestral_hashes: Set[int] = set()
         while nodes_stack:
             node = nodes_stack.pop()
-            # This condition is for nodes that are used as inputs.
+            # This condition is for feature nodes that are used as inputs.
             # These will be 'dependency-solved' later on, for now
             # treating them as inputs
             if isinstance(node, BaseFeatureNode) and not node.parents:
-                # TODO : adapt this for dual types of inputs
+                # TODO: this is actually useless, as the link with the child is "severed"
+                #  this needs to be tested and fixed
                 if isinstance(node, FeatureNode):
                     node = InputNode(Input(node.feature_name), is_feat=True)
                 else:
@@ -368,7 +375,10 @@ class ExtractionDAG:
                     # add the current node as a child to the dag parent
                     dag_node.children.append(node)
                 else:
-                    nodes_stack.appendleft(node_parent)
+                    # quick and dirty way to check that nodes aren't added twice to the stack
+                    if node_parent.ancestral_hash() not in added_nodes_ancestral_hashes:
+                        nodes_stack.appendleft(node_parent)
+                        added_nodes_ancestral_hashes.add(node_parent.ancestral_hash())
 
         self._needs_dependency_solving = True
 

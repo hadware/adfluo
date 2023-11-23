@@ -18,9 +18,6 @@
 * idea for an eventual CLI tool: specify the object to load from a script in the current python namespace.
 * use networkX and multipartite_graph to plot the processing DAG
 * use extras_requires( `pip install adfluo[plot]`) to install extra plotting dependencies
-* ask about names for 
-  - the extractor (ExtractionSet?)
-  - DatasetLoader?
 * documentation on documentation https://diataxis.fr/
 * Deactivate settattr on processors (make object frozen) during process call 
 * rework the error reporting system (when using skip errors or not)
@@ -46,6 +43,7 @@
 * EASY: check that the BadSampleException mechanism works properly (in tests)
 * EASY: create NullCache that stores nothing to simplify "if cache" logic?
 * MAYBE: use __get__ on hparams classes to simplify things a bit (maybe?)
+* MAYBE: redefine `__hash__" on nodes to be the genealogical hash. Also, think about caching it
 
 # Future implementation Notes
 
