@@ -43,7 +43,9 @@
 * EASY: check that the BadSampleException mechanism works properly (in tests)
 * EASY: create NullCache that stores nothing to simplify "if cache" logic?
 * MAYBE: use __get__ on hparams classes to simplify things a bit (maybe?)
-* MAYBE: redefine `__hash__" on nodes to be the genealogical hash. Also, think about caching it
+* MAYBE: redefine `__hash__" on nodes to be the genealogical hash. Also, think about caching it 
+  -> Done, needs a merge
+* EASY: add pre-process hook method for processors
 
 # Future implementation Notes
 

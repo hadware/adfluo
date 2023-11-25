@@ -18,6 +18,15 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True)
+class ParametersCount:
+    nb_args: int
+    variable: bool
+
+    def accept(self, nb_args: int):
+        return nb_args >= self.nb_args if self.variable else nb_args == self.nb_args
+
+
+@dataclass(frozen=True)
 class ProcessorParameter:
     default: Hashable
 
@@ -61,6 +70,9 @@ class ProcessorBase(metaclass=ABCMeta):
             setattr(self, param_key, proc_param.default)
         self._current_sample: Optional[Sample] = None
 
+        if len(self.signature.parameters) < 1:
+            raise ValueError("Function must have at least one parameter")
+
         self.post_init()
 
     def post_init(self):
@@ -77,8 +89,10 @@ class ProcessorBase(metaclass=ABCMeta):
         pass
 
     @property
-    def nb_args(self):
-        return len(self.signature.parameters)
+    def parameters(self):
+        # 2 is "VAR_POSITIONAL"
+        variable_params = any(param.kind == 2 for param in self.signature.parameters.values())
+        return ParametersCount(len(self.signature.parameters), variable_params)
 
     @property
     @abstractmethod
@@ -188,8 +202,7 @@ class FunctionWrapperMixin:
 
     def __init__(self, fun: Callable):
         self.fun = fun
-        if len(signature(fun).parameters) < 1:
-            raise ValueError("Function must have at least one parameter")
+        super().__init__()
 
     @property
     def signature(self):
@@ -244,10 +257,6 @@ class ListWrapperProcessor(SampleProcessor):
 
     def __hash__(self):
         return hash((self.__class__, self.proc))
-
-    @property
-    def nb_args(self):
-        return 1
 
     @property
     def output_type(self):
@@ -330,7 +339,7 @@ Pass = F(lambda x: x)
 
 class BaseFeat(SampleProcessor, metaclass=ABCMeta):
     """Base class for Features and Dataset Features"""
-    feat_name : str
+    feat_name: str
 
     def __init__(self, feat_name: str, storage: Optional[StorageProtocol] = None):
         super().__init__(feat_name=feat_name)

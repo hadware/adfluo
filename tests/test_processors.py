@@ -67,11 +67,44 @@ def test_nb_args():
     def h():
         return "la menuiserie mec"
 
-    assert F(f).nb_args == 2
-    assert F(g).nb_args == 1
+    class Proc1(SampleProcessor):
+        def process(self, a, b) -> Any:
+            pass
+
+    class Proc2(SampleProcessor):
+        def process(self) -> Any:
+            pass
+
+    assert F(f).parameters.nb_args == 2
+    assert F(g).parameters.nb_args == 1
+    assert not F(g).parameters.variable
+    assert Proc1().parameters.nb_args == 2
+    assert not Proc1().parameters.variable
 
     with pytest.raises(ValueError, match="Function must have at least one parameter"):
         F(h)
+
+    with pytest.raises(ValueError, match="Function must have at least one parameter"):
+        Proc2()
+
+
+def test_variable_nb_args():
+    def f(*args):
+        pass
+
+    def g(a, b, *args):
+        pass
+
+    class Proc(SampleProcessor):
+        def process(self, *args) -> Any:
+            pass
+
+    assert F(f).parameters.nb_args == 1
+    assert F(f).parameters.variable
+    assert F(g).parameters.nb_args == 3
+    assert F(g).parameters.variable
+    assert Proc().parameters.nb_args
+    assert Proc().parameters.variable == 1
 
 
 def test_input_proc():

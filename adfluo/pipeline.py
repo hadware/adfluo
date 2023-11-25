@@ -125,7 +125,7 @@ class ExtractionPipeline:
 
         # adding a node as a merger of several branches
         else:
-            assert self.nb_outputs == proc.nb_args
+            assert proc.parameters.accept(self.nb_outputs)
             new_node.parents = self.outputs
             for o in self.outputs:
                 o.children = [new_node]
@@ -147,7 +147,7 @@ class ExtractionPipeline:
 
         elif pipeline.nb_inputs == 1 and self.nb_outputs > 1:
             # TODO: better error
-            assert self.nb_outputs == pipeline.inputs[0].processor.nb_args
+            assert pipeline.inputs[0].processor.parameters.accept(self.nb_outputs)
             pipeline.inputs[0].parents = self.outputs
             for o in self.outputs:
                 o.children = [pipeline.inputs[0]]
