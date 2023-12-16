@@ -8,7 +8,7 @@ from typing_extensions import Literal, Any
 
 from .dataset import DatasetLoader, Sample, ListLoader
 from .exceptions import DuplicateSampleError
-from .extraction_graph import ExtractionDAG, FeatureName, FeatureNode, SampleProcessorNode
+from .extraction_graph import ExtractionDAG, FeatureName, FeatureNode, SampleProcessorNode, AggregatorNode
 from .pipeline import ExtractionPipeline
 from .storage import BaseStorage, CSVStorage, PickleStorage, DataFrameStorage, JSONStorage, \
     SplitPickleStorage
@@ -35,12 +35,12 @@ class Extractor:
     @property
     def hparams(self) -> Set[str]:
         return set(chain.from_iterable(node.processor.hparams for node in self.extraction_DAG.nodes
-                                       if isinstance(node, SampleProcessorNode)))
+                                       if isinstance(node, (SampleProcessorNode, AggregatorNode))))
 
     def set_hparams(self, params: Dict[str, Any]):
         assert set(params.keys()) == self.hparams
         for node in self.extraction_DAG.nodes:
-            if isinstance(node, SampleProcessorNode):
+            if isinstance(node, (SampleProcessorNode, AggregatorNode)):
                 node.processor.set_hparams(**params)
 
     def add_extraction(
@@ -63,7 +63,7 @@ class Extractor:
         """Temporary (?) method to extract aggregations for dataset features that have a
         storage protocol"""
         if self.hparams:
-            raise RuntimeError(f"Hyperparameters {', '.join(self.hparams)} still need to be set.")
+            raise RuntimeError(f"Hyperparameters {', '.join(self.hparams)} should have been set before extraction.")
 
         if isinstance(dataset, list):
             dataset = ListLoader(dataset)

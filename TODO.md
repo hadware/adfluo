@@ -46,6 +46,7 @@
 * MAYBE: redefine `__hash__" on nodes to be the genealogical hash. Also, think about caching it 
   -> Done, needs a merge
 * EASY: add pre-process hook method for processors
+* URGENT : Subset should be on outputs, _not_ inputs
 
 # Future implementation Notes
 

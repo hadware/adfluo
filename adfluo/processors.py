@@ -410,3 +410,4 @@ class FunctionWrapperAggregator(FunctionWrapperMixin, DatasetAggregator):
 
 
 Agg = FunctionWrapperAggregator
+Agg.__doc__ = FunctionWrapperProcessor.__doc__

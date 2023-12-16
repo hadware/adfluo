@@ -254,6 +254,7 @@ def test_rombus_DAG():
         >> Feat("feat_a")
     )
 
+
 def test_duplicate_feature():
     dag = ExtractionDAG()
     with pytest.raises(AssertionError, match="Duplicate name for feature name 'feat_a'"):
@@ -261,3 +262,32 @@ def test_duplicate_feature():
             Input("input_a")
             >> (Feat("feat_a") | Feat("feat_a"))
         )
+
+
+def test_use_feature_before_creation():
+    dag = ExtractionDAG()
+    dag.add_pipeline(
+        (Feat("feat_b") | Feat("feat_a"))
+        >> F(lambda x, y: x * y)
+        >> Feat("feat_c")
+    )
+
+    dag.add_pipeline(
+        Input("input_a")
+        >> F(lambda x: x + 3)
+        >> Feat("feat_a")
+    )
+    dag.add_pipeline(
+        Input("input_a")
+        >> F(lambda x: x + 1)
+        >> Feat("feat_b")
+    )
+    dag.solve_dependencies()
+
+def test_inexisting_use_feature_before_creation():
+    dag = ExtractionDAG()
+    dag.add_pipeline(
+        (Feat("feat_b") | Feat("feat_a"))
+        >> F(lambda x, y: x * y)
+        >> Feat("feat_c")
+    )
