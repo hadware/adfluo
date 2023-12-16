@@ -309,10 +309,12 @@ class ExtractionDAG:
     def genealogical_search(self, searched_node: BaseGraphNode) -> Optional[BaseGraphNode]:
         """Search the DAG for a node that is the same node and has the same
         ancestry as the searched node. If nothing is found, returns None"""
+        if searched_node not in self.nodes:
+            return None
+
         for dag_node in self.nodes:
             if dag_node == searched_node:
                 return dag_node
-        return None
 
     def add_pipeline(self, pipeline: 'ExtractionPipeline'):
         # first, checking that the pipeline is right
