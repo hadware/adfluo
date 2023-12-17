@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Iterable, List, Dict, Any, Union, Sized
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Iterable, List, Dict, Any, Union, Sized, Callable
 
 from adfluo.types import SampleID
 
@@ -92,3 +94,26 @@ class SubsetLoader(DatasetLoader):
         for sample in self.dataset:
             if sample.id in self.kept_samples:
                 yield sample
+
+
+LoaderFn = Callable[[Path], Any]
+
+
+class FolderLoader(ListLoader):
+    @dataclass
+    class FileSample(Sample):
+        path: Path
+        folder: Path
+        loader_fn: LoaderFn
+
+        @property
+        def id(self) -> Union[str, int]:
+            return str(self.path.relative_to(self.folder))
+
+        def __getitem__(self, data_name: str) -> Any:
+            return self.loader_fn(self.path)
+
+    def __init__(self, root_folder: Path, loader_fn: LoaderFn, recursive: bool = False):
+        assert root_folder.is_dir()
+        all_paths = root_folder.glob("**/*") if recursive else root_folder.iterdir()
+        super().__init__([self.FileSample(p, root_folder, loader_fn) for p in all_paths])
