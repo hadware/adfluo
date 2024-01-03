@@ -1,8 +1,13 @@
+from typing import Any
+
 import pytest
 
-from adfluo.dataset import DictSample
+from adfluo import SampleProcessor
+from adfluo.dataset import DictSample, ListLoader
 from adfluo.extraction_graph import ExtractionDAG, SampleProcessorNode
 from adfluo.processors import Input, F, Feat
+from adfluo.utils import extraction_policy
+from tests.test_dsfeats import dataset
 
 
 def test_two_pipeline_parallel():
@@ -291,3 +296,37 @@ def test_inexisting_use_feature_before_creation():
         >> F(lambda x, y: x * y)
         >> Feat("feat_c")
     )
+
+def test_error_in_proc():
+
+    def failing_proc(val: int) -> int:
+        raise RuntimeError("Houston we have a problem")
+
+    dag = ExtractionDAG()
+    dag.add_pipeline(
+        Input("data_a") >> F(failing_proc) >> Feat("feat_a")
+    )
+    dataloader = ListLoader(dataset)
+    dag.set_loader(dataloader)
+    sample = next(iter(dataloader))
+    dag.extract_sample_wise(sample, show_progress=False)
+
+def test_badsample():
+
+    class FailingProc(SampleProcessor):
+
+        def process(self, val: int) -> int:
+            if self.current_sample.id == "0":
+                raise RuntimeError("Houston we have a problem")
+            else:
+                return val
+
+    dag = ExtractionDAG()
+    dag.add_pipeline(
+        Input("data_a") >> FailingProc() >> Feat("feat_a")
+    )
+    dataloader = ListLoader(dataset)
+    dag.set_loader(dataloader)
+    extraction_policy.skip_errors = True
+    feat_a = dag.extract_feature_wise("feat_a", show_progress=False)
+    assert "0" not in feat_a

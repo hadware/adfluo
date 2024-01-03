@@ -95,12 +95,14 @@ class SampleProcessorNode(BaseGraphNode):
         except Exception as err:
             if extraction_policy.skip_errors:
                 logger.warning(
-                    f"Got error in processor {type(self.processor).__name__} on sample {sample.id} : {str(err)}")
+                    f"Got error in processor {self.processor} on sample {sample.id} : {str(err)}")
                 self.cache.add_failed_sample(sample)
                 raise BadSampleException(sample)
             else:
+                # TODO: make new type of error "Extraction error" that keeps the traceback of the original error
+                #  This error class can also store and display the current feature being extracted (if caught later on in the call stack)
                 tb = sys.exc_info()[2]
-                err = type(err)(f"In processor {repr(self)}, on sample {sample.id} : {str(err)}").with_traceback(tb)
+                err = type(err)(f"In processor {self.processor}, on sample {sample.id} : {str(err)}").with_traceback(tb)
                 raise err
 
     def __getitem__(self, sample: Sample) -> Sample:
