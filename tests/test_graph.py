@@ -4,6 +4,7 @@ import pytest
 
 from adfluo import SampleProcessor
 from adfluo.dataset import DictSample, ListLoader
+from adfluo.exceptions import BadSampleException
 from adfluo.extraction_graph import ExtractionDAG, SampleProcessorNode
 from adfluo.processors import Input, F, Feat
 from adfluo.utils import extraction_policy
@@ -309,7 +310,8 @@ def test_error_in_proc():
     dataloader = ListLoader(dataset)
     dag.set_loader(dataloader)
     sample = next(iter(dataloader))
-    dag.extract_sample_wise(sample, show_progress=False)
+    with pytest.raises(RuntimeError, match="Houston we have a problem"):
+        dag.extract_sample_wise(sample, show_progress=False)
 
 def test_badsample():
 
@@ -328,5 +330,11 @@ def test_badsample():
     dataloader = ListLoader(dataset)
     dag.set_loader(dataloader)
     extraction_policy.skip_errors = True
+
+    sample_0 = next(iter(dataloader))
+    with pytest.raises(BadSampleException):
+        # TODO : check for sample info in exception and stack data
+        dag.feature_nodes["feat_a"][sample_0]
+
     feat_a = dag.extract_feature_wise("feat_a", show_progress=False)
     assert "0" not in feat_a
