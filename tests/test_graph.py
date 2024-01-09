@@ -5,9 +5,8 @@ import pytest
 from adfluo import SampleProcessor
 from adfluo.dataset import DictSample, ListLoader
 from adfluo.exceptions import BadSampleException
-from adfluo.extraction_graph import ExtractionDAG, SampleProcessorNode
+from adfluo.extraction_graph import ExtractionDAG, SampleProcessorNode, BaseGraphNode
 from adfluo.processors import Input, F, Feat
-from adfluo.utils import extraction_policy
 from tests.test_dsfeats import dataset
 
 
@@ -329,7 +328,7 @@ def test_badsample():
     )
     dataloader = ListLoader(dataset)
     dag.set_loader(dataloader)
-    extraction_policy.skip_errors = True
+    BaseGraphNode.extraction_policy.skip_errors = True
 
     sample_0 = next(iter(dataloader))
     with pytest.raises(BadSampleException):
@@ -338,3 +337,4 @@ def test_badsample():
 
     feat_a = dag.extract_feature_wise("feat_a", show_progress=False)
     assert "0" not in feat_a
+    BaseGraphNode.extraction_policy.skip_errors = False
