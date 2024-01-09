@@ -13,8 +13,6 @@ class ExtractionPolicy:
     no_cache: bool = False
 
 
-extraction_policy = ExtractionPolicy()
-
 NoneType = type(None)
 
 

@@ -18,7 +18,7 @@ from typing_extensions import Literal, Any
 from adfluo import DatasetLoader, Extractor, Sample
 from adfluo.dataset import ListLoader, SubsetLoader
 from adfluo.types import StorageFormat
-from .utils import logger, extraction_policy
+from .utils import logger
 
 
 class StoreNameValuePairs(argparse.Action):
@@ -224,7 +224,8 @@ class ExtractCommand(Command):
         kwargs = {
             "extraction_order": order,
             "storage_indexing": indexing,
-            "no_caching": no_caching
+            "no_caching": no_caching,
+            "skip_errors": skip_errors
         }
 
         if output is not None:
@@ -252,7 +253,6 @@ class ExtractCommand(Command):
         elif storage_format in {"csv", "json", "pickle", "hdf5"}:
             kwargs["output_file"] = output
 
-        extraction_policy.skip_errors = skip_errors
         extractor.show_progress = not hide_progress
 
         # final call to extraction routine

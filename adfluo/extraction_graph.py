@@ -11,13 +11,14 @@ from .exceptions import DuplicateSampleError, BadSampleException, BadAggregation
 from .processors import SampleProcessor, SampleInputProcessor, SampleFeatureProcessor, Input, DatasetFeatureProcessor, \
     DatasetAggregator, DatasetInputProcessor, DSInput, BaseFeat
 from .types import FeatureName, SampleID, SampleData
-from .utils import extraction_policy, logger
+from .utils import logger, ExtractionPolicy
 
 if TYPE_CHECKING:
     from .pipeline import ExtractionPipeline
 
 
 class BaseGraphNode(metaclass=ABCMeta):
+    extraction_policy = ExtractionPolicy()
 
     def __init__(self):
         self.children: List['BaseGraphNode'] = []
@@ -93,7 +94,7 @@ class SampleProcessorNode(BaseGraphNode):
         try:
             return self.processor(sample, parents_output)
         except Exception as err:
-            if extraction_policy.skip_errors:
+            if self.extraction_policy.skip_errors:
                 logger.warning(
                     f"Got error in processor {self.processor} on sample {sample.id} : {str(err)}")
                 self.cache.add_failed_sample(sample)
@@ -108,7 +109,7 @@ class SampleProcessorNode(BaseGraphNode):
     def __getitem__(self, sample: Sample) -> Sample:
         # if node has no children or one child, or if cache is disabled,
         # bypass the cache mechanism
-        if len(self.children) <= 1 or extraction_policy.no_cache:
+        if len(self.children) <= 1 or self.extraction_policy.no_cache:
             return self.compute_sample(sample)
 
         try:
@@ -141,7 +142,7 @@ class AggregatorNode(BaseGraphNode):
         try:
             return self.processor(all_samples_data)
         except Exception as err:
-            if extraction_policy.skip_errors:
+            if self.extraction_policy.skip_errors:
                 raise BadAggregationException()
             else:
                 raise err

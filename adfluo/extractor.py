@@ -8,12 +8,13 @@ from typing_extensions import Literal, Any
 
 from .dataset import DatasetLoader, Sample, ListLoader
 from .exceptions import DuplicateSampleError
-from .extraction_graph import ExtractionDAG, FeatureName, FeatureNode, SampleProcessorNode, AggregatorNode
+from .extraction_graph import ExtractionDAG, FeatureName, FeatureNode, SampleProcessorNode, AggregatorNode, \
+    BaseGraphNode
 from .pipeline import ExtractionPipeline
 from .storage import BaseStorage, CSVStorage, PickleStorage, DataFrameStorage, JSONStorage, \
     SplitPickleStorage
 from .types import StorageIndexing
-from .utils import extraction_policy, logger
+from .utils import logger, ExtractionPolicy
 
 ExtractionOrder = Literal["feature", "sample"]
 Dataset = Union[DatasetLoader, List[Dict], List[Sample]]
@@ -26,9 +27,8 @@ if TYPE_CHECKING:
 
 
 class Extractor:
-    def __init__(self, skip_errors=False, show_progress=True):
+    def __init__(self, show_progress=True):
         self.extraction_DAG = ExtractionDAG()
-        self.skip_errors = skip_errors
         self.show_progress = show_progress
         self.dropped_features: Set[FeatureName] = set()
 
@@ -42,6 +42,9 @@ class Extractor:
         for node in self.extraction_DAG.nodes:
             if isinstance(node, (SampleProcessorNode, AggregatorNode)):
                 node.processor.set_hparams(**params)
+
+    def set_extraction_policy(self, no_cache: bool, skip_errors: bool):
+        BaseGraphNode.extraction_policy = ExtractionPolicy(skip_errors=skip_errors, no_cache=no_cache)
 
     def add_extraction(
             self,
@@ -134,9 +137,10 @@ class Extractor:
                         dataset: Dataset,
                         extraction_order: ExtractionOrder = "feature",
                         storage_indexing: StorageIndexing = "sample",
-                        no_caching: bool = False):
-        extraction_policy.skip_errors = self.skip_errors
-        extraction_policy.no_cache = no_caching
+                        no_caching: bool = False,
+                        skip_errors: bool = False):
+        self.set_extraction_policy(no_caching, skip_errors)
+
         storage = BaseStorage(storage_indexing)
         self._extract(dataset, extraction_order, storage)
         return storage.get_data()
@@ -147,9 +151,10 @@ class Extractor:
                        extraction_order: ExtractionOrder = "feature",
                        storage_indexing: StorageIndexing = "sample",
                        no_caching: bool = False,
+                       skip_errors: bool = False,
                        csv_dialect: Optional[Dialect] = None):
-        extraction_policy.skip_errors = self.skip_errors
-        extraction_policy.no_cache = no_caching
+        self.set_extraction_policy(no_caching, skip_errors)
+
         if isinstance(output_file, (Path, str)):
             csv_file = open(output_file, "w")
         else:
@@ -167,9 +172,10 @@ class Extractor:
                           output_file: Union[str, Path, BinaryIO],
                           extraction_order: ExtractionOrder = "feature",
                           storage_indexing: StorageIndexing = "sample",
-                          no_caching: bool = False):
-        extraction_policy.skip_errors = self.skip_errors
-        extraction_policy.no_cache = no_caching
+                          no_caching: bool = False,
+                          skip_errors: bool = False):
+        self.set_extraction_policy(no_caching, skip_errors)
+
         if isinstance(output_file, (Path, str)):
             pickle_file = open(output_file, "wb")
         else:
@@ -187,9 +193,10 @@ class Extractor:
                         output_file: Union[str, Path, TextIO],
                         extraction_order: ExtractionOrder = "feature",
                         storage_indexing: StorageIndexing = "sample",
-                        no_caching: bool = False):
-        extraction_policy.skip_errors = self.skip_errors
-        extraction_policy.no_cache = no_caching
+                        no_caching: bool = False,
+                        skip_errors: bool = False):
+        self.set_extraction_policy(no_caching, skip_errors)
+
         if isinstance(output_file, (Path, str)):
             json_file = open(output_file, "w")
         else:
@@ -209,9 +216,11 @@ class Extractor:
                                 extraction_order: ExtractionOrder = "sample",
                                 storage_indexing: StorageIndexing = "sample",
                                 no_caching: bool = False,
+                                skip_errors: bool = False,
                                 stream: bool = True):
-        extraction_policy.skip_errors = self.skip_errors
-        extraction_policy.no_cache = no_caching
+
+        self.set_extraction_policy(no_caching, skip_errors)
+
         if stream:
             assert extraction_order == storage_indexing
         if isinstance(output_folder, str):
@@ -226,17 +235,19 @@ class Extractor:
                       dataset: Dataset,
                       extraction_order: ExtractionOrder = "feature",
                       storage_indexing: StorageIndexing = "sample",
-                      no_caching: bool = False) -> 'pd.DataFrame':
-        extraction_policy.skip_errors = self.skip_errors
-        extraction_policy.no_cache = no_caching
+                      no_caching: bool = False,
+                      skip_errors: bool = False) -> 'pd.DataFrame':
+        self.set_extraction_policy(no_caching, skip_errors)
         storage = DataFrameStorage(storage_indexing)
         self._extract(dataset, extraction_order, storage)
         return storage.get_data()
+
 
     def extract_to_hdf5(self,
                         dataset: Dataset,
                         database: Union[str, Path, 'h5py.File'],
                         extraction_order: ExtractionOrder = "sample",
                         storage_indexing: StorageIndexing = "sample",
-                        no_caching: bool = False):
-        pass  # to stream, indexing must be the same as sample order
+                        no_caching: bool = False,
+                        skip_errors: bool = False):
+        raise NotImplementedError()  # to stream, indexing must be the same as sample order

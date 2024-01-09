@@ -11,6 +11,7 @@ from .dataset import Sample
 from .exceptions import InvalidInputData
 from .storage import StorageProtocol
 from .types import SampleID
+from .utils import logger
 from .validator import ValidatorFunction
 
 if TYPE_CHECKING:
@@ -322,18 +323,22 @@ DSInput = DatasetInputProcessor
 DSInput.__doc__ = DatasetInputProcessor.__doc__
 
 
-class PrinterProcessor(SampleProcessor):
+class LoggerProcessor(SampleProcessor):
     name: str = param()
 
-    def __init__(self, name: Optional[str] = None):
+    def __init__(self, name: Optional[str] = None, formatter: Optional[Callable[[Any], Any]] = None):
         super().__init__(name=name)
+        self.formatter = formatter
 
     def process(self, *args) -> Tuple:
-        print(f"{self.name} received {args} ")
+        msg = str(self.formatter(*args)) if self.formatter is not None else str(args)
+        if self.name is not None:
+            msg = f"{self.name}: {msg}"
+        logger.info(msg)
         return args
 
 
-Printer = PrinterProcessor()
+Logger = LoggerProcessor
 Pass = F(lambda x: x)
 
 
