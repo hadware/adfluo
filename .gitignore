@@ -124,3 +124,6 @@ dmypy.json
 
 # pycharm config
 .idea/
+
+# local testing files
+notebooks/

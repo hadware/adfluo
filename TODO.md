@@ -26,7 +26,7 @@
 * add optional validation logic, either through a `validates` method in sampleprocessor 
   or via a dedicated `SampleValidator` processor.
 * URGENT : make feature extraction order cache-efficient (using a tree iterator)
-* Use PyCairo to draw the processor graph
+* Use https://github.com/bdcht/grandalf to layout graph and https://github.com/cduck/drawsvg to draw the processor graph
 * Make a recipe for resampling (maybe also think about some helpful API elements for this)
 * EASY: add "reset" (clear cache and all) functionality to be able to reuse the same extractor on different datasets in the same run
 * URGENT: add 'append/overwrite mode' to storages
@@ -35,7 +35,6 @@
 * URGENT: check if "possibility of calling a pipeline right away on a sample/dataset" is working
 * URGENT: add dataset features
   - Figure out storability
-  - figure out pipeline semantics (`DSFeat` ? `AggregationProcessor` ?)
 * TODO: use generics for processor type in graph nodes classes
 * EASY: use fnmatch (https://docs.python.org/3/library/fnmatch.html#fnmatch.filter) 
   when using features restrictions or inclusions in CLI
@@ -43,10 +42,10 @@
 * EASY: check that the BadSampleException mechanism works properly (in tests)
 * EASY: create NullCache that stores nothing to simplify "if cache" logic?
 * MAYBE: use __get__ on hparams classes to simplify things a bit (maybe?)
-* MAYBE: redefine `__hash__" on nodes to be the genealogical hash. Also, think about caching it 
-  -> Done, needs a merge
 * EASY: add pre-process hook method for processors
 * URGENT : Subset should be on outputs, _not_ inputs
+* EASY (?): Use rich's console to redirect logger during extraction https://rich.readthedocs.io/en/stable/progress.html#print-log
+* EASY : have two mode for progress: rich & TQDM
 
 # Future implementation Notes
 
