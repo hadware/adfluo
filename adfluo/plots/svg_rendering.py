@@ -85,6 +85,9 @@ class GraphEdge:
 
 class SVGGraphRenderer:
     NODE_RADIUS: int = 40
+    NODES_SPACING: int = NODE_RADIUS * 2
+    LAYERS_SPACING: int = NODE_RADIUS * 5
+    GRAPH_PADDING : int = NODE_RADIUS * 2
     NODE_COLORS_MAPPING = {
         InputNode: "white",
         DatasetInputNode: "white",
@@ -110,8 +113,8 @@ class SVGGraphRenderer:
             v.view = defaultview()
 
         sug = SugiyamaLayout(graph.C[0])
-        sug.yspace = self.NODE_RADIUS * 5
-        sug.xspace = self.NODE_RADIUS * 2
+        sug.yspace = self.LAYERS_SPACING
+        sug.xspace = self.NODES_SPACING
         sug.init_all()
         sug.draw(3)
         for e in graph.E():
@@ -129,7 +132,7 @@ class SVGGraphRenderer:
             element.rotate(math.radians(90))
         x_min = min([n.top_left()[0] for n in graph_nodes])
         y_max = max([n.top_left()[1] for n in graph_nodes])
-        offset = (-(x_min - self.NODE_RADIUS * 2), -(y_max + self.NODE_RADIUS * 2))
+        offset = (-(x_min - self.GRAPH_PADDING), -(y_max + self.GRAPH_PADDING))
         for element in graph_nodes + graph_edges:
             element.translate(offset)
         return graph_nodes, graph_edges
@@ -140,7 +143,7 @@ class SVGGraphRenderer:
         x_max = max([n.bottom_right()[0] for n in nodes])
         y_min = min([n.bottom_right()[1] for n in nodes])
 
-        d = draw.Drawing(x_max + self.NODE_RADIUS, abs(y_min) + self.NODE_RADIUS, origin=(0, 0))
+        d = draw.Drawing(x_max + self.GRAPH_PADDING, abs(y_min) + self.GRAPH_PADDING, origin=(0, 0))
         g = draw.Group(stroke='black', fill='none')
         arrow = draw.Lines(0, - self.NODE_RADIUS / 7,
                            self.NODE_RADIUS / 2, 0,
