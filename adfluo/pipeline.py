@@ -6,7 +6,6 @@ from .dataset import Sample, DictSample
 from .exceptions import PipelineBuildError, PIPELINE_TYPE_ERROR
 from .extraction_graph import SampleProcessorNode, FeatureNode, InputNode, FeatureName, AggregatorNode, BaseInputNode, \
     BaseFeatureNode, DatasetInputNode, DatasetFeatureNode
-from .plotting import plot_dag
 from .processors import ProcessorBase, SampleProcessor, \
     Input, Feat, DatasetAggregator, DSInput, DSFeat
 
@@ -205,9 +204,10 @@ class ExtractionPipeline:
             output_dict[output_node.processor.feat_name] = output_node[sample]
         return output_dict
 
-    def _repr_png_(self):
+    def _repr_svg_(self):
         """Ipython notebook visualization"""
+        from .plots import SVGGraphRenderer
         try:
-            plot_dag(self, show=True)
+            return SVGGraphRenderer().render_svg(self)
         except ImportError as err:
             warnings.warn(str(err))

@@ -1,4 +1,5 @@
 import sys
+import warnings
 from abc import ABCMeta, abstractmethod
 from collections import deque
 from typing import List, Dict, Any, Optional, Iterable, Deque, Set, TYPE_CHECKING, Type, Tuple
@@ -509,3 +510,10 @@ class ExtractionDAG:
             if subset is not None and feature_name not in subset:
                 continue
             yield feature_name, feature_node()
+
+    def _repr_svg_(self):
+        from .plots import SVGGraphRenderer
+        try:
+            return SVGGraphRenderer().render_svg(self)
+        except ImportError as err:
+            warnings.warn(str(err))

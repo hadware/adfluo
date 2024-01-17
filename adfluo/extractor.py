@@ -1,3 +1,4 @@
+import warnings
 from csv import Dialect
 from itertools import chain
 from pathlib import Path
@@ -251,3 +252,10 @@ class Extractor:
                         no_caching: bool = False,
                         skip_errors: bool = False):
         raise NotImplementedError()  # to stream, indexing must be the same as sample order
+
+    def _repr_svg_(self):
+        from .plots import SVGGraphRenderer
+        try:
+            return SVGGraphRenderer().render_svg(self.extraction_DAG)
+        except ImportError as err:
+            warnings.warn(str(err))

@@ -18,7 +18,6 @@ classifiers = [
     'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
-
 ]
 dependencies = [
     "rich",
@@ -27,18 +26,20 @@ dependencies = [
     "typing-extensions"]
 
 [project.optional-dependencies]
-plot = ["matplotlib", "networkX"]
-tests = ["pytest",
-    "pandas",
-    "h5py",
-    "matplotlib",
-    "networkX"]
-docs = ["sphinx", "sphinx_rtd_theme"]
 plots = [
     "CairoSVG",
     "drawsvg>=2.3.0",
     "grandalf>=0.8"
 ]
+tests = [
+    "pytest",
+    "pandas",
+    "CairoSVG",
+    "drawsvg>=2.3.0",
+    "grandalf>=0.8"
+]
+docs = ["sphinx", "sphinx_rtd_theme"]
+
 
 [build-system]
 requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]

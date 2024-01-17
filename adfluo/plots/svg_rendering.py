@@ -5,8 +5,7 @@ from itertools import product
 from typing import TYPE_CHECKING, Literal, Union
 from typing import Tuple, List, Optional
 
-from grandalf.graphs import Vertex, Edge, Graph
-from grandalf.routing import EdgeViewer, route_with_lines
+
 
 from .sphinx_utils import get_type_hints, stringify_annotation
 from ..extraction_graph import BaseGraphNode, InputNode, SampleProcessorNode, RootNode, FeatureNode, DatasetFeatureNode, \
@@ -87,7 +86,7 @@ class SVGGraphRenderer:
     NODE_RADIUS: int = 40
     NODES_SPACING: int = NODE_RADIUS * 2
     LAYERS_SPACING: int = NODE_RADIUS * 5
-    GRAPH_PADDING : int = NODE_RADIUS * 2
+    GRAPH_PADDING: int = NODE_RADIUS * 2
     NODE_COLORS_MAPPING = {
         InputNode: "white",
         DatasetInputNode: "white",
@@ -99,6 +98,10 @@ class SVGGraphRenderer:
     }
 
     def build_layout(self, nodes: List[BaseGraphNode]) -> Tuple['Graph', 'SugiyamaLayout']:
+        from grandalf.graphs import Vertex, Edge, Graph
+        from grandalf.layouts import SugiyamaLayout
+        from grandalf.routing import EdgeViewer, route_with_lines
+
         vertices_dict = {node: Vertex(data=node) for node in nodes}
         edges = []
         for node in nodes:
@@ -172,9 +175,7 @@ class SVGGraphRenderer:
         d.append(g)
         return d
 
-    def render(self, dag: Union['ExtractionPipeline', 'ExtractionDAG'],
-               img_format: Literal["png", "svg"] = "svg") -> bytes:
-        assert img_format in {"png", "svg"}
+    def render(self, dag: Union['ExtractionPipeline', 'ExtractionDAG']) -> 'Drawing':
 
         from ..extraction_graph import ExtractionDAG
         from ..pipeline import ExtractionPipeline
@@ -185,13 +186,20 @@ class SVGGraphRenderer:
         else:
             raise TypeError("Unsupported object type for dag")
 
-        graph, layout = self.build_layout(all_nodes)
-        nodes, edges = self.convert_layout(graph, layout)
-        drawing = self.build_drawing(nodes, edges)
-
-        if img_format == "svg":
-            return drawing.as_svg()
+        try:
+            graph, layout = self.build_layout(all_nodes)
+            nodes, edges = self.convert_layout(graph, layout)
+            drawing = self.build_drawing(nodes, edges)
+        except ImportError:
+            raise ImportError(
+                "Missing packages for graph plotting. Please run `pip install adfluo[plots]`")
         else:
-            bytes_io = io.BytesIO()
-            drawing.save_png(fname=bytes_io)
-            return bytes_io.getvalue()
+            return drawing
+
+    def render_svg(self, dag: Union['ExtractionPipeline', 'ExtractionDAG']) -> str:
+        return self.render(dag).as_svg()
+
+    def render_png(self, dag: Union['ExtractionPipeline', 'ExtractionDAG']) -> bytes:
+        bytes_io = io.BytesIO()
+        self.render(dag).save_png(fname=bytes_io)
+        return bytes_io.getvalue()
