@@ -94,13 +94,15 @@ class ExtractionPipeline:
          - "inner" nodes can't be input/feature nodes
          """
 
-        # TODO : better error
         for node in self.inputs:
-            assert isinstance(node, (BaseInputNode, BaseFeatureNode))
+            assert isinstance(node, (BaseInputNode, BaseFeatureNode)), \
+                "All inputs of a pipeline have to be either 'Input' or 'Feat' processors"
         for node in self.outputs:
-            assert isinstance(node, BaseFeatureNode)
+            assert isinstance(node, BaseFeatureNode), \
+                "All outputs of a pipeline have to be Feat processors"
         ends = set(self.inputs + self.outputs)
         for node in self.all_nodes:
+            # TODO : better error
             if node not in ends:
                 assert not isinstance(node, (BaseFeatureNode, BaseInputNode))
 
