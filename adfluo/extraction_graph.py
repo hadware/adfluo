@@ -8,7 +8,8 @@ from rich.progress import track
 
 from .cache import BaseCache, SingleValueCache, SampleCache
 from .dataset import DatasetLoader, Sample, DictSample
-from .exceptions import DuplicateSampleError, BadSampleException, BadAggregationException
+from .exceptions import DuplicateSampleError, BadSampleException, BadAggregationException, ExtractionError, \
+    ExtractionContext
 from .processors import SampleProcessor, SampleInputProcessor, SampleFeatureProcessor, Input, DatasetFeatureProcessor, \
     DatasetAggregator, DatasetInputProcessor, DSInput, BaseFeat
 from .types import FeatureName, SampleID, SampleData
@@ -101,11 +102,8 @@ class SampleProcessorNode(BaseGraphNode):
                 self.cache.add_failed_sample(sample)
                 raise BadSampleException(sample)
             else:
-                # TODO: make new type of error "Extraction error" that keeps the traceback of the original error
-                #  This error class can also store and display the current feature being extracted (if caught later on in the call stack)
                 tb = sys.exc_info()[2]
-                err = type(err)(f"In processor {self.processor}, on sample {sample.id} : {str(err)}").with_traceback(tb)
-                raise err
+                raise ExtractionError(err, ExtractionContext(sample.id, self.processor)).with_traceback(tb)
 
     def __getitem__(self, sample: Sample) -> Sample:
         # if node has no children or one child, or if cache is disabled,
@@ -486,6 +484,9 @@ class ExtractionDAG:
                 feat_dict[sample.id] = feat_node[sample]
             except BadSampleException:
                 pass
+            except ExtractionError as err:
+                err.ctx.feature = feature_name
+                raise err
         return feat_dict
 
     def extract_sample_wise(self, sample: Sample, show_progress: bool) \
@@ -501,6 +502,9 @@ class ExtractionDAG:
                 feat_dict[feature_name] = feature_node[sample]
             except BadSampleException:
                 pass
+            except ExtractionError as err:
+                err.ctx.feature = feature_name
+                raise err
         return feat_dict
 
     def extract_dataset_features(self, show_progress: bool,

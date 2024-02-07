@@ -77,7 +77,7 @@ class GraphEdge:
 
         sig = get_type_hints(proc_fn)
         if "return" in sig:
-            return stringify_annotation(sig["return"])
+            return stringify_annotation(sig["return"], mode="smart")
         else:
             return None
 
