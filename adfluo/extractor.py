@@ -1,10 +1,13 @@
 import warnings
 from csv import Dialect
+from functools import partial
 from itertools import chain
 from pathlib import Path
 from typing import Union, Optional, TextIO, BinaryIO, TYPE_CHECKING, List, Dict, Set
 
+import sys
 from rich.progress import track
+from tqdm import tqdm
 from typing_extensions import Literal, Any
 
 from .dataset import DatasetLoader, Sample, ListLoader
@@ -47,6 +50,12 @@ class Extractor:
     def set_extraction_policy(self, no_cache: bool, skip_errors: bool):
         BaseGraphNode.extraction_policy = ExtractionPolicy(skip_errors=skip_errors, no_cache=no_cache)
 
+    def get_progress_iterator(self, caption: str):
+        if 'ipykernel' in sys.modules:
+            return partial(tqdm, desc=caption, disable=not self.show_progress)
+        else:
+            return partial(track, description=caption, disable=self.show_progress)
+
     def add_extraction(
             self,
             pipeline: ExtractionPipeline,
@@ -75,7 +84,7 @@ class Extractor:
         self.extraction_DAG.set_loader(dataset)
 
         output_dict = {}
-        for feat_name, feat_value in self.extraction_DAG.extract_dataset_features(self.show_progress):
+        for feat_name, feat_value in self.extraction_DAG.extract_dataset_features(self.get_progress_iterator("")):
             feat_node = self.extraction_DAG.dataset_features_nodes[feat_name]
             if feat_node.processor.custom_storage is None:
                 output_dict[feat_name] = feat_value
@@ -100,7 +109,7 @@ class Extractor:
             for feature_name, feat_node in self.extraction_DAG.feature_nodes.items():
                 logger.info(f"Extracting feature {feature_name}")
                 output_data = self.extraction_DAG.extract_feature_wise(feature_name,
-                                                                       self.show_progress)
+                                                                       self.get_progress_iterator(feature_name))
                 if feature_name in self.dropped_features:
                     continue
 
@@ -119,7 +128,7 @@ class Extractor:
 
                 logger.info(f"Extracting features for sample {sample.id}")
                 output_data = self.extraction_DAG.extract_sample_wise(sample,
-                                                                      self.show_progress)
+                                                                      self.get_progress_iterator(sample.id))
 
                 # dropping "dropped on save" features
                 for feat_name in self.dropped_features:

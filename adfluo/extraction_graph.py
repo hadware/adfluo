@@ -2,9 +2,10 @@ import sys
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import deque
-from typing import List, Dict, Any, Optional, Iterable, Deque, Set, TYPE_CHECKING, Type, Tuple
+from typing import List, Dict, Any, Optional, Iterable, Deque, Set, TYPE_CHECKING, Type, Tuple, Callable
 
 from rich.progress import track
+from tqdm import tqdm
 
 from .cache import BaseCache, SingleValueCache, SampleCache
 from .dataset import DatasetLoader, Sample, DictSample
@@ -12,7 +13,7 @@ from .exceptions import DuplicateSampleError, BadSampleException, BadAggregation
     ExtractionContext
 from .processors import SampleProcessor, SampleInputProcessor, SampleFeatureProcessor, Input, DatasetFeatureProcessor, \
     DatasetAggregator, DatasetInputProcessor, DSInput, BaseFeat
-from .types import FeatureName, SampleID, SampleData
+from .types import FeatureName, SampleID, SampleData, ProgressIterator
 from .utils import logger, ExtractionPolicy
 
 if TYPE_CHECKING:
@@ -98,7 +99,8 @@ class SampleProcessorNode(BaseGraphNode):
         except Exception as err:
             if self.extraction_policy.skip_errors:
                 logger.warning(
-                    f"Got error in processor {self.processor} on sample {sample.id} : {str(err)}")
+                    f"Got error in processor {self.processor} on sample {sample.id} : "
+                    f"\"{str(type(err))} : {str(err)}\"")
                 self.cache.add_failed_sample(sample)
                 raise BadSampleException(sample)
             else:
@@ -464,7 +466,7 @@ class ExtractionDAG:
         self._loader = loader
         self.root_node.set_loader(loader)
 
-    def extract_feature_wise(self, feature_name: str, show_progress: bool) \
+    def extract_feature_wise(self, feature_name: str, progress_iterator: ProgressIterator,) \
             -> Dict[SampleID, Any]:
         """Extract a feature for all samples"""
         self.solve_dependencies()
@@ -473,9 +475,7 @@ class ExtractionDAG:
         feat_node = self.feature_nodes[feature_name]
 
         sample_ids = set()
-        for sample in track(self._loader,
-                            description=feature_name,
-                            disable=not show_progress):
+        for sample in progress_iterator(self._loader):
             if sample.id in sample_ids:
                 raise DuplicateSampleError(sample.id)
             sample_ids.add(sample.id)
@@ -489,15 +489,13 @@ class ExtractionDAG:
                 raise err
         return feat_dict
 
-    def extract_sample_wise(self, sample: Sample, show_progress: bool) \
+    def extract_sample_wise(self, sample: Sample, progress_iterator: ProgressIterator,) \
             -> Dict[FeatureName, Any]:
         """Extract all features for a unique sample"""
         self.solve_dependencies()
 
         feat_dict = {}
-        for feature_name, feature_node in track(self.feature_nodes.items(),
-                                                description=sample.id,
-                                                disable=not show_progress):
+        for feature_name, feature_node in progress_iterator(self.feature_nodes.items()):
             try:
                 feat_dict[feature_name] = feature_node[sample]
             except BadSampleException:
@@ -507,10 +505,9 @@ class ExtractionDAG:
                 raise err
         return feat_dict
 
-    def extract_dataset_features(self, show_progress: bool,
+    def extract_dataset_features(self, progress_iterator: ProgressIterator,
                                  subset: Optional[Set[str]] = None) -> Iterable[Tuple[FeatureName, Any]]:
-        for feature_name, feature_node in track(self.dataset_features_nodes.items(),
-                                                disable=not show_progress):
+        for feature_name, feature_node in progress_iterator(self.dataset_features_nodes.items()):
             if subset is not None and feature_name not in subset:
                 continue
             yield feature_name, feature_node()

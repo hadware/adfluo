@@ -310,7 +310,7 @@ def test_error_in_proc():
     dag.set_loader(dataloader)
     sample = next(iter(dataloader))
     with pytest.raises(RuntimeError, match="Houston we have a problem"):
-        dag.extract_sample_wise(sample, show_progress=False)
+        dag.extract_sample_wise(sample, iter)
 
 def test_badsample():
 
@@ -335,6 +335,6 @@ def test_badsample():
         # TODO : check for sample info in exception and stack data
         dag.feature_nodes["feat_a"][sample_0]
 
-    feat_a = dag.extract_feature_wise("feat_a", show_progress=False)
+    feat_a = dag.extract_feature_wise("feat_a", iter)
     assert "0" not in feat_a
     BaseGraphNode.extraction_policy.skip_errors = False
