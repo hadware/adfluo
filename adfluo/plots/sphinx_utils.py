@@ -32,7 +32,7 @@ import types
 import typing
 from contextvars import Context, ContextVar, Token
 from struct import Struct
-from typing import Any, TypeVar
+from typing import Any, TypeVar, Dict
 
 if sys.version_info >= (3, 10):
     from types import UnionType
@@ -104,8 +104,8 @@ def safe_getattr(obj: Any, name: str, *defargs: Any) -> Any:
 
 
 def get_type_hints(
-        obj: Any, globalns: dict[str, Any] | None = None, localns: dict[str, Any] | None = None,
-) -> dict[str, Any]:
+        obj: Any, globalns: Dict[str, Any] | None = None, localns: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
     """Return a dictionary containing type hints for a function, method, module or class
     object.
 
