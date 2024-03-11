@@ -54,7 +54,7 @@ class Extractor:
         if 'ipykernel' in sys.modules:
             return partial(tqdm, desc=caption, disable=not self.show_progress)
         else:
-            return partial(track, description=caption, disable=self.show_progress)
+            return partial(track, description=caption, disable=not self.show_progress)
 
     def add_extraction(
             self,
@@ -105,6 +105,7 @@ class Extractor:
         if isinstance(dataset, list):
             dataset = ListLoader(dataset)
 
+        self.extraction_DAG.reset()
         self.extraction_DAG.set_loader(dataset)
         # feature-wise extraction
         if extraction_order == "feature":
@@ -199,6 +200,7 @@ class Extractor:
 
         if isinstance(output_file, (Path, str)):
             pickle_file.close()
+        return storage.get_data()
 
     def extract_to_json(self,
                         dataset: Dataset,
@@ -221,6 +223,7 @@ class Extractor:
 
         if isinstance(output_file, (Path, str)):
             json_file.close()
+        return storage.get_data()
 
     def extract_to_pickle_files(self,
                                 dataset: Dataset,

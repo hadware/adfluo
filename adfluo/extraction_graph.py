@@ -58,7 +58,6 @@ class BaseGraphNode(metaclass=ABCMeta):
             raise RuntimeError("Cannot retrieve all samples if no parent is set")
         return self.parents[0].iter_all_samples()
 
-
     def replace_parent(self, old_parent: 'BaseGraphNode',
                        new_parent: 'BaseGraphNode'):
         parent_idx = self.parents.index(old_parent)
@@ -185,8 +184,6 @@ class BaseFeatureNode(SampleProcessorNode):
         return super().compute_sample(sample)
 
 
-
-
 class FeatureNode(BaseFeatureNode):
     """Doesn't do any processing, just here as a passthrough node from
     which to pull samples for a specific feature"""
@@ -309,6 +306,12 @@ class ExtractionDAG:
     @property
     def all_inputs(self):
         return self.inputs | self.dataset_inputs
+
+    def reset(self):
+        self.set_loader(None)
+        for node in self.nodes:
+            if isinstance(node, (SampleProcessorNode, AggregatorNode)):
+                node.cache.reset()
 
     def genealogical_search(self, searched_node: BaseGraphNode) -> Optional[BaseGraphNode]:
         """Search the DAG for a node that is the same node and has the same
@@ -462,11 +465,11 @@ class ExtractionDAG:
         self._features_order = [node.processor.feature
                                 for node in sorted_feature_nodes]
 
-    def set_loader(self, loader: DatasetLoader):
+    def set_loader(self, loader: Optional[DatasetLoader]):
         self._loader = loader
         self.root_node.set_loader(loader)
 
-    def extract_feature_wise(self, feature_name: str, progress_iterator: ProgressIterator,) \
+    def extract_feature_wise(self, feature_name: str, progress_iterator: ProgressIterator, ) \
             -> Dict[SampleID, Any]:
         """Extract a feature for all samples"""
         self.solve_dependencies()
@@ -489,7 +492,7 @@ class ExtractionDAG:
                 raise err
         return feat_dict
 
-    def extract_sample_wise(self, sample: Sample, progress_iterator: ProgressIterator,) \
+    def extract_sample_wise(self, sample: Sample, progress_iterator: ProgressIterator, ) \
             -> Dict[FeatureName, Any]:
         """Extract all features for a unique sample"""
         self.solve_dependencies()
