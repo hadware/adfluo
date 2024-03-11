@@ -39,10 +39,10 @@ class GraphNode:
     center: Point
     ref: BaseGraphNode
 
-    def top_left(self) -> tuple[float, float]:
+    def top_left(self) -> Tuple[float, float]:
         return self.center[0] - self.radius / 2, self.center[1] + self.radius / 2
 
-    def bottom_right(self) -> tuple[float, float]:
+    def bottom_right(self) -> Tuple[float, float]:
         return self.center[0] + self.radius / 2, self.center[1] - self.radius / 2
 
     def translate(self, offset: Point):

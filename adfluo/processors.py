@@ -59,12 +59,16 @@ class ProcessorBase(metaclass=ABCMeta):
             try:
                 hash(val)
             except TypeError:
-                raise ValueError(f"Value for parameter {key} isn't hashable.")
+                raise ValueError(f"Value for parameter {key} isn't hashable and has to be.")
 
             setattr(self, key, val)
             param_names.remove(key)
 
-        # TODO : store hparams in a dict that shouldn't be changed when hparams are set
+        # store hparams.name -> (hparam, attr name) in a dict that shouldn't be changed when hparams are set
+        self._hparams = {hparam.name: (hparam, attr_name)
+                         for attr_name, hparam in self.__dict__.items()
+                         if isinstance(hparam, ExtractorHyperParameter)}
+
         # remaining parameters are set to the default set in the class attribute
         for param_key in param_names:
             proc_param: ProcessorParameter = getattr(self, param_key)
@@ -108,8 +112,12 @@ class ProcessorBase(metaclass=ABCMeta):
 
     @property
     def hparams(self) -> Set[str]:
-        return {v.name for v in self.__dict__.values()
-                if isinstance(v, ExtractorHyperParameter)}
+        return set(self._hparams.keys())
+
+    @property
+    def unset_hparams(self) -> Set[str]:
+        return {hparam.name for hparam in self.__dict__.values()
+                if isinstance(hparam, ExtractorHyperParameter)}
 
     @property
     def _sorted_params(self) -> SortedDict:
@@ -119,18 +127,14 @@ class ProcessorBase(metaclass=ABCMeta):
         return param_dict
 
     def set_hparams(self, **hparams: Dict[str, Any]):
-        for param in self.class_params:
-            attribute_val = getattr(self, param, None)
-            if not isinstance(attribute_val, ExtractorHyperParameter):
-                continue
-            # if the (class) processor parameter has been set as an hyperparam,
-            # set it using values from the params dict
-            if attribute_val.name in hparams:
-                value = hparams[attribute_val.name]
-                # converting param value using hparam type if specified
-                if attribute_val.type is not None:
-                    value = attribute_val.type(value)
-                setattr(self, param, value)
+        # setting only the hparams that are injected in this processors
+        for hparam_name in set(self._hparams.keys()) | self.hparams:
+            hparam, hparam_attr = self._hparams[hparam_name]
+            proc_param_value = hparams[hparam_name]
+            # converting param value using hparam type if specified
+            if hparam.type is not None:
+                proc_param_value = hparam.type(proc_param_value)
+            setattr(self, hparam_attr, proc_param_value)
 
     def __hash__(self):
         return hash((self.__class__, tuple(self._sorted_params.items())))

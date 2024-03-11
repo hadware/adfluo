@@ -12,7 +12,6 @@ from pprint import pprint
 from typing import Optional, List, Dict, Union, Type, Tuple
 
 from rich.progress import track
-from tqdm import tqdm
 from typing_extensions import Literal, Any
 
 from adfluo import DatasetLoader, Extractor, Sample
@@ -195,7 +194,7 @@ class ExtractCommand(Command):
 
         if test_samples:
             error_count = 0
-            for sample in tqdm(dataset):
+            for sample in track(dataset):
                 sample: Sample
                 for input_name in extractor.extraction_DAG.inputs:
                     try:

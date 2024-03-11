@@ -96,7 +96,9 @@ class Extractor:
                  dataset: Dataset,
                  extraction_order: ExtractionOrder,
                  storage: BaseStorage):
-        if self.hparams:
+        unset_hparams = set(chain.from_iterable(node.processor.unset_hparams for node in self.extraction_DAG.nodes
+                                                if isinstance(node, (SampleProcessorNode, AggregatorNode))))
+        if unset_hparams:
             raise RuntimeError(f"Hyperparameters {', '.join(self.hparams)} still need to be set.")
 
         assert extraction_order in ("sample", "feature")
@@ -251,7 +253,6 @@ class Extractor:
         storage = DataFrameStorage(storage_indexing)
         self._extract(dataset, extraction_order, storage)
         return storage.get_data()
-
 
     def extract_to_hdf5(self,
                         dataset: Dataset,

@@ -137,4 +137,4 @@ def test_hparams():
         "hparam_c": 3})
     for proc_node in input_node.children:
         proc_node: SampleProcessorNode
-        assert len(proc_node.processor.hparams) == 0
+        assert len(proc_node.processor.unset_hparams) == 0
