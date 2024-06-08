@@ -214,3 +214,22 @@ def test_pipeline_multiple_features():
     sample = {"n": 0}
     pl = Input("n") >> F(add_one) >> (F(add_one) >> F(times_two) >> (Feat("times_two")) | Feat("one"))
     assert pl(sample) == {"times_two": 4, "one": 1}
+
+
+def test_merge_than_multiple_features():
+    def add_one(n: int) -> int:
+        return n + 1
+
+    def times_two(n: int) -> int:
+        return n * 2
+
+    pl = (
+            (Input("a") | Input("b"))
+            >> (
+                    (F(lambda a, b: a + b) >> Feat("feat_sum"))
+                    |
+                    (F(lambda a, b: a * b) >> Feat("feat_prod"))
+            )
+    )
+    sample = {"a": 1, "b": 0}
+    pl(sample)

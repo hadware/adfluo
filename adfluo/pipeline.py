@@ -136,22 +136,13 @@ class ExtractionPipeline:
 
     def concatenate(self, pipeline: 'ExtractionPipeline'):
         """Appends (in place) another pipeline to the current pipeline instance"""
-        if self.nb_outputs == pipeline.nb_inputs:
-            for right_out, left_in in zip(self.outputs, pipeline.inputs):
-                right_out.children = [left_in]
-                left_in.parents = [right_out]
 
-        elif self.nb_outputs == 1 and pipeline.nb_inputs > 1:
-            self.outputs[0].children = pipeline.inputs
-            for i in pipeline.inputs:
-                i.parents = [self.outputs[0]]
-
-        elif pipeline.nb_inputs == 1 and self.nb_outputs > 1:
+        for left_in in pipeline.inputs:
             # TODO: better error
-            assert pipeline.inputs[0].processor.parameters.accept(self.nb_outputs)
-            pipeline.inputs[0].parents = self.outputs
-            for o in self.outputs:
-                o.children = [pipeline.inputs[0]]
+            assert left_in.processor.parameters.accept(self.nb_outputs)
+            left_in.parents = self.outputs
+        for right_out in self.outputs:
+            right_out.children = pipeline.inputs
 
         self.outputs = pipeline.outputs
         self.all_nodes += pipeline.all_nodes
