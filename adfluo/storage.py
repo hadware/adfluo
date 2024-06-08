@@ -4,8 +4,8 @@ import pickle
 from collections import defaultdict
 from csv import Dialect
 from pathlib import Path
-from typing import Optional, TextIO, Dict, Any, BinaryIO, Set, TYPE_CHECKING
-from typing_extensions import Protocol
+from typing import Optional, TextIO, Dict, Any, BinaryIO, Set, TYPE_CHECKING, Tuple
+from typing_extensions import Protocol, Iterable
 
 from .dataset import Sample
 from .types import StorageIndexing, FeatureName, SampleID
@@ -32,6 +32,20 @@ class BaseStorage:
         self.indexing = indexing
         self._data: Dict[SampleID, Dict[FeatureName, Any]] = defaultdict(dict)
         self._features: Set[FeatureName] = set()
+
+    @staticmethod
+    def flatten_tuple(t: Tuple[Any], separator: str):
+        return separator.join(str(v) for v in t)
+
+    def flatten_dict(self, data: Dict[str, Any], feat_name: str, separator: str = "_") -> Iterable[Tuple[str, Any]]:
+        for key, value in data.items():
+            if isinstance(key, tuple):
+                key = self.flatten_tuple(key, separator)
+            subfeature_name = f"{feat_name}{separator}{key}"
+            if isinstance(value, dict):
+                yield from self.flatten_dict(value, subfeature_name, separator)
+            else:
+                yield subfeature_name, value
 
     def check_samples(self):
         for sample_id, sample_dict in self._data.items():
