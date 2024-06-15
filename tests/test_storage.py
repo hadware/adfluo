@@ -5,7 +5,7 @@ from itertools import chain
 from pathlib import Path
 from typing import Any
 
-from adfluo import Extractor, Input, Feat
+from adfluo import Extractor, Input, Feat, F
 from adfluo.dataset import ListLoader
 from adfluo.storage import BaseStorage, CSVStorage, JSONStorage, PickleStorage, SplitPickleStorage, StorageProtocol
 from adfluo.types import SampleID, FeatureName
@@ -151,3 +151,22 @@ def test_custom_storage_feature():
     assert set(chain.from_iterable(feats.keys() for feats in output.values())) == {"feat_a"}
     # testing that the storage worked properly
     assert set(storage.values.keys()) == {(str(i), "feat_b") for i in range(3)}
+
+
+def test_storage_flatten_features():
+    samples = [{"input_a": i} for i in range(3)]
+    dataset = ListLoader(samples)
+    extractor = Extractor()
+    extractor.add_extraction(Input("input_a")
+                             >> F(lambda i: {"squared": i ** 2, "mult": {"double": 2 * i, "triple": 3 * i}})
+                             >> Feat("feat_a"))
+
+    output = extractor.extract_to_dict(dataset, storage_indexing="feature", extraction_order="sample",
+                                       flatten_features=True)
+    assert set(output.keys()) == {"feat_a_squared", "feat_a_mult_double", "feat_a_mult_triple"}
+    assert output["feat_a_mult_triple"]["1"] == 3
+
+    output = extractor.extract_to_dict(dataset, storage_indexing="feature", extraction_order="feature",
+                                       flatten_features=True)
+    assert set(output.keys()) == {"feat_a_squared", "feat_a_mult_double", "feat_a_mult_triple"}
+    assert output["feat_a_mult_triple"]["1"] == 3

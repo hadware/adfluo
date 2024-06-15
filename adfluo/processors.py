@@ -249,6 +249,7 @@ class ListWrapperProcessor(SampleProcessor):
     """Akin to a "map" function, applied on a list of per-sample data"""
 
     # TODO: double check and write some tests
+    # TODO: add support for datasetprocessors? (via a ListWrapperMixin?, c.f. FunctionWrapper)
 
     def __init__(self, proc: SampleProcessor):
         super().__init__()
@@ -350,9 +351,12 @@ class BaseFeat(SampleProcessor, metaclass=ABCMeta):
     """Base class for Features and Dataset Features"""
     feat_name: str
 
-    def __init__(self, feat_name: str, storage: Optional[StorageProtocol] = None):
+    def __init__(self, feat_name: str,
+                 storage: Optional[StorageProtocol] = None,
+                 default: Any | Callable[[], Any] = None):
         super().__init__(feat_name=feat_name)
         self.custom_storage = storage
+        self.default = default
 
     def process(self, *args) -> Tuple:
         return args[0]

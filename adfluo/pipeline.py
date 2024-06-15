@@ -1,5 +1,5 @@
 import warnings
-from typing import List, Union, Dict, Any
+from typing import List, Union, Dict, Any, Iterable
 
 from .cache import SingleValueCache
 from .dataset import Sample, DictSample
@@ -204,3 +204,17 @@ class ExtractionPipeline:
             return SVGGraphRenderer().render_svg(self)
         except ImportError as err:
             warnings.warn(str(err))
+
+
+def parallel(list_procs: List[PipelineElement]) -> ExtractionPipeline:
+    pl = ExtractionPipeline()
+    for el in list_procs:
+        pl = pl | el
+    return pl
+
+
+def sequence(list_procs: List[PipelineElement]) -> ExtractionPipeline:
+    pl = ExtractionPipeline()
+    for el in list_procs:
+        pl = pl >> el
+    return pl

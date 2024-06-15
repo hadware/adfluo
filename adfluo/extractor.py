@@ -95,7 +95,8 @@ class Extractor:
     def _extract(self,
                  dataset: Dataset,
                  extraction_order: ExtractionOrder,
-                 storage: BaseStorage):
+                 storage: BaseStorage,
+                 flatten_features: bool):
         unset_hparams = set(chain.from_iterable(node.processor.unset_hparams for node in self.extraction_DAG.nodes
                                                 if isinstance(node, (SampleProcessorNode, AggregatorNode))))
         if unset_hparams:
@@ -117,7 +118,7 @@ class Extractor:
                     continue
 
                 if feat_node.processor.custom_storage is None:
-                    storage.store_feat(feature_name, output_data)
+                    storage.store_feat(feature_name, output_data, flatten_features)
                 else:
                     for sample_id, value in output_data.items():
                         feat_node.processor.custom_storage.store(sample_id, feature_name, value)
@@ -144,18 +145,19 @@ class Extractor:
                     if feat_node.processor.custom_storage is not None:
                         feat_node.processor.custom_storage.store(sample.id, feat_name, value)
                         del output_data[feat_name]
-                storage.store_sample(sample, output_data)
+                storage.store_sample(sample, output_data, flatten_features)
 
     def extract_to_dict(self,
                         dataset: Dataset,
                         extraction_order: ExtractionOrder = "feature",
                         storage_indexing: StorageIndexing = "sample",
+                        flatten_features: bool = False,
                         no_caching: bool = False,
                         skip_errors: bool = False):
         self.set_extraction_policy(no_caching, skip_errors)
 
         storage = BaseStorage(storage_indexing)
-        self._extract(dataset, extraction_order, storage)
+        self._extract(dataset, extraction_order, storage, flatten_features)
         return storage.get_data()
 
     def extract_to_csv(self,
@@ -163,6 +165,7 @@ class Extractor:
                        output_file: Union[str, Path, TextIO],
                        extraction_order: ExtractionOrder = "feature",
                        storage_indexing: StorageIndexing = "sample",
+                       flatten_features: bool = False,
                        no_caching: bool = False,
                        skip_errors: bool = False,
                        csv_dialect: Optional[Dialect] = None):
@@ -174,7 +177,7 @@ class Extractor:
             csv_file = output_file
 
         storage = CSVStorage(storage_indexing, csv_file, csv_dialect)
-        self._extract(dataset, extraction_order, storage)
+        self._extract(dataset, extraction_order, storage, flatten_features)
         storage.write()
 
         if isinstance(output_file, (Path, str)):
@@ -185,6 +188,7 @@ class Extractor:
                           output_file: Union[str, Path, BinaryIO],
                           extraction_order: ExtractionOrder = "feature",
                           storage_indexing: StorageIndexing = "sample",
+                          flatten_features: bool = False,
                           no_caching: bool = False,
                           skip_errors: bool = False):
         self.set_extraction_policy(no_caching, skip_errors)
@@ -195,7 +199,7 @@ class Extractor:
             pickle_file = output_file
 
         storage = PickleStorage(storage_indexing, pickle_file)
-        self._extract(dataset, extraction_order, storage)
+        self._extract(dataset, extraction_order, storage, flatten_features)
         storage.write()
 
         if isinstance(output_file, (Path, str)):
@@ -207,6 +211,7 @@ class Extractor:
                         output_file: Union[str, Path, TextIO],
                         extraction_order: ExtractionOrder = "feature",
                         storage_indexing: StorageIndexing = "sample",
+                        flatten_features: bool = False,
                         no_caching: bool = False,
                         skip_errors: bool = False):
         self.set_extraction_policy(no_caching, skip_errors)
@@ -217,7 +222,7 @@ class Extractor:
             json_file = output_file
 
         storage = JSONStorage(storage_indexing, json_file)
-        self._extract(dataset, extraction_order, storage)
+        self._extract(dataset, extraction_order, storage, flatten_features)
         storage.check_samples()
         storage.write()
 
@@ -230,6 +235,7 @@ class Extractor:
                                 output_folder: Union[str, Path],
                                 extraction_order: ExtractionOrder = "sample",
                                 storage_indexing: StorageIndexing = "sample",
+                                flatten_features: bool = False,
                                 no_caching: bool = False,
                                 skip_errors: bool = False,
                                 stream: bool = True):
@@ -243,18 +249,19 @@ class Extractor:
         assert output_folder.is_dir()
 
         storage = SplitPickleStorage(storage_indexing, output_folder, stream)
-        self._extract(dataset, extraction_order, storage)
+        self._extract(dataset, extraction_order, storage, flatten_features)
         storage.write()
 
     def extract_to_df(self,
                       dataset: Dataset,
                       extraction_order: ExtractionOrder = "feature",
                       storage_indexing: StorageIndexing = "sample",
+                      flatten_features: bool = False,
                       no_caching: bool = False,
                       skip_errors: bool = False) -> 'pd.DataFrame':
         self.set_extraction_policy(no_caching, skip_errors)
         storage = DataFrameStorage(storage_indexing)
-        self._extract(dataset, extraction_order, storage)
+        self._extract(dataset, extraction_order, storage, flatten_features)
         return storage.get_data()
 
     def extract_to_hdf5(self,

@@ -289,6 +289,7 @@ def test_use_feature_before_creation():
     )
     dag.solve_dependencies()
 
+
 def test_inexisting_use_feature_before_creation():
     dag = ExtractionDAG()
     dag.add_pipeline(
@@ -297,8 +298,8 @@ def test_inexisting_use_feature_before_creation():
         >> Feat("feat_c")
     )
 
-def test_error_in_proc():
 
+def test_error_in_proc():
     def failing_proc(val: int) -> int:
         raise RuntimeError("Houston we have a problem")
 
@@ -312,8 +313,8 @@ def test_error_in_proc():
     with pytest.raises(RuntimeError, match="Houston we have a problem"):
         dag.extract_sample_wise(sample, iter)
 
-def test_badsample():
 
+def test_badsample():
     class FailingProc(SampleProcessor):
 
         def process(self, val: int) -> int:
@@ -338,3 +339,34 @@ def test_badsample():
     feat_a = dag.extract_feature_wise("feat_a", iter)
     assert "0" not in feat_a
     BaseGraphNode.extraction_policy.skip_errors = False
+
+
+def test_feature_default():
+    class FailingProc(SampleProcessor):
+
+        def process(self, val: int) -> int:
+            if self.current_sample.id == "0":
+                raise RuntimeError("Houston we have a problem")
+            else:
+                return val
+
+    dag = ExtractionDAG()
+    dag.add_pipeline(
+        Input("data_a") >> FailingProc() >> Feat("feat_a", default=0)
+    )
+    dag.add_pipeline(
+        Feat("feat_a") >> F(lambda x: x + 1) >> Feat("feat_b")
+    )
+    dataloader = ListLoader(dataset)
+    dag.set_loader(dataloader)
+
+    BaseGraphNode.extraction_policy.skip_errors = False
+
+    sample_0 = next(iter(dataloader))
+    with pytest.raises(RuntimeError, match="Houston we have a problem"):
+        # TODO : check for sample info in exception and stack data
+        dag.feature_nodes["feat_b"][sample_0]
+
+    BaseGraphNode.extraction_policy.skip_errors = True
+    feat_a = dag.extract_feature_wise("feat_b", iter)
+    assert set(feat_a.values()) == set(range(1, 11))

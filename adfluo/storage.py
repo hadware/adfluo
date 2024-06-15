@@ -4,8 +4,9 @@ import pickle
 from collections import defaultdict
 from csv import Dialect
 from pathlib import Path
-from typing import Optional, TextIO, Dict, Any, BinaryIO, Set, TYPE_CHECKING, Tuple
-from typing_extensions import Protocol, Iterable
+from typing import Optional, TextIO, Dict, Any, BinaryIO, Set, TYPE_CHECKING, Tuple, Union, Iterator
+
+from typing_extensions import Protocol
 
 from .dataset import Sample
 from .types import StorageIndexing, FeatureName, SampleID
@@ -37,15 +38,15 @@ class BaseStorage:
     def flatten_tuple(t: Tuple[Any], separator: str):
         return separator.join(str(v) for v in t)
 
-    def flatten_dict(self, data: Dict[str, Any], feat_name: str, separator: str = "_") -> Iterable[Tuple[str, Any]]:
-        for key, value in data.items():
-            if isinstance(key, tuple):
-                key = self.flatten_tuple(key, separator)
-            subfeature_name = f"{feat_name}{separator}{key}"
-            if isinstance(value, dict):
+    def flatten_dict(self, data : Union[Dict[str, Any], Any], feat_name: Optional[str], separator: str = "_") -> Iterator[Tuple[str, Any]]:
+        if not isinstance(data, dict):
+            yield feat_name, data
+        else:
+            for key, value in data.items():
+                if isinstance(key, tuple):
+                    key = self.flatten_tuple(key, separator)
+                subfeature_name = f"{feat_name}{separator}{key}" if feat_name is not None else key
                 yield from self.flatten_dict(value, subfeature_name, separator)
-            else:
-                yield subfeature_name, value
 
     def check_samples(self):
         for sample_id, sample_dict in self._data.items():
@@ -61,12 +62,20 @@ class BaseStorage:
         else, raises an error"""
         pass
 
-    def store_feat(self, feature: str, data: Dict[SampleID, Any]):
-        self._features.add(feature)
-        for sample_id, value in data.items():
-            self._data[sample_id][feature] = value
+    def store_feat(self, feature: str, data: Dict[SampleID, Any], flatten: bool = False):
+        if flatten:
+            for sample_id, sample_feat in data.items():
+                for feat_name, feat_value in self.flatten_dict(sample_feat, feature):
+                    self._data[sample_id][feat_name] = feat_value
+                    self._features.add(feat_name)
+        else:
+            self._features.add(feature)
+            for sample_id, value in data.items():
+                self._data[sample_id][feature] = value
 
-    def store_sample(self, sample: Sample, data: Dict[FeatureName, Any]):
+    def store_sample(self, sample: Sample, data: Dict[FeatureName, Any], flatten: bool = False):
+        if flatten:
+            data = dict(self.flatten_dict(data, feat_name=None))
         self._features.update(set(data.keys()))
         self._data[sample.id] = data
 
@@ -131,14 +140,14 @@ class SplitPickleStorage(BaseStorage):
         self.folder = output_folder
         self.streaming = streaming
 
-    def store_sample(self, sample: Sample, data: Dict[FeatureName, Any]):
-        super().store_sample(sample, data)
+    def store_sample(self, sample: Sample, data: Dict[FeatureName, Any], flatten: bool = False):
+        super().store_sample(sample, data, flatten)
         # if the indexing allows it, dumping all stored data to disk and clearing current storage
         if self.indexing == "sample" and self.streaming:
             self.flush()
 
-    def store_feat(self, feature: str, data: Dict[SampleID, Any]):
-        super().store_feat(feature, data)
+    def store_feat(self, feature: str, data: Dict[SampleID, Any], flatten: bool = False):
+        super().store_feat(feature, data, flatten)
         # if the indexing allows it, dumping all stored data to disk and clearing current storage
         if self.indexing == "feature" and self.streaming:
             self.flush()
@@ -147,6 +156,7 @@ class SplitPickleStorage(BaseStorage):
         # writing to disk and emptying storage cache
         self.write()
         self._data = defaultdict(dict)
+        self._features = set()
 
     def write(self):
         data = self.get_data()

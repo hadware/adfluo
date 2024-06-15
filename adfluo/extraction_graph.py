@@ -181,7 +181,14 @@ class BaseFeatureNode(SampleProcessorNode):
             raise RuntimeError(f"No parents for feature node for feature "
                                f"{self.processor.feat_name}. "
                                f"Node has no parents.")
-        return super().compute_sample(sample)
+        try:
+            return super().compute_sample(sample)
+        except BadSampleException as err:
+            if self.processor.default is not None:
+                default = self.processor.default
+                return default() if isinstance(default, Callable) else default
+            else:
+                raise err
 
 
 class FeatureNode(BaseFeatureNode):
