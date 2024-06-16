@@ -4,11 +4,10 @@ from csv import Dialect
 from functools import partial
 from itertools import chain
 from pathlib import Path
-from typing import Optional, TextIO, BinaryIO, TYPE_CHECKING, Union
+from typing import Optional, TextIO, BinaryIO, TYPE_CHECKING, Union, Literal, Any
 
 from rich.progress import track
 from tqdm import tqdm
-from typing_extensions import Literal, Any
 
 from .dataset import DatasetLoader, Sample, ListLoader
 from .exceptions import DuplicateSampleError
