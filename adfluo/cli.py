@@ -9,10 +9,9 @@ from collections import Counter
 from importlib import import_module
 from pathlib import Path
 from pprint import pprint
-from typing import Optional, List, Dict, Union, Type, Tuple
+from typing import Optional, Literal, Any
 
 from rich.progress import track
-from typing_extensions import Literal, Any
 
 from adfluo import DatasetLoader, Extractor, Sample
 from adfluo.dataset import ListLoader, SubsetLoader
@@ -34,7 +33,7 @@ class CLIParametersError(Exception):
 
 
 def import_obj(class_path: str) \
-        -> Optional[Union[Extractor, Type[DatasetLoader], DatasetLoader, List[Dict]]]:
+        -> Optional[Extractor | type[DatasetLoader] | DatasetLoader | list[dict]]:
     # TODO: better error
     assert len(class_path.split(".")) > 1
     *module_path, obj_name = class_path.split(".")
@@ -45,7 +44,7 @@ def import_obj(class_path: str) \
     return getattr(mod, obj_name)
 
 
-def load_dataset(dataset_name: str, dataset_args: Optional[Dict[str, Any]]) -> DatasetLoader:
+def load_dataset(dataset_name: str, dataset_args: Optional[dict[str, Any]]) -> DatasetLoader:
     # first trying to load from json (dataset is a path)
     dataset_path = Path(dataset_name)
     if dataset_path.is_file() and dataset_path.suffix == ".json":
@@ -142,7 +141,7 @@ class ExtractCommand(Command):
 
     @classmethod
     def storage_format_heuristic(cls, output_path: Path, storage_format: Optional[StorageFormat]):
-        ext_mapping: Dict[str, StorageFormat] = {
+        ext_mapping: dict[str, StorageFormat] = {
             "csv": "csv",
             "json": "json",
             "pkl": "pickle",
@@ -160,13 +159,13 @@ class ExtractCommand(Command):
     def main(cls,
              extractor: str,
              dataset: str,
-             dataset_args: Optional[List[str]],
-             hparams: Optional[List[Tuple[str, str]]],
+             dataset_args: Optional[list[str]],
+             hparams: Optional[list[tuple[str, str]]],
              output: Path,
-             feats: Optional[List[str]],
-             exclude_feats: Optional[List[str]],
-             samples: Optional[List[str]],
-             exclude_samples: Optional[List[str]],
+             feats: Optional[list[str]],
+             exclude_feats: Optional[list[str]],
+             samples: Optional[list[str]],
+             exclude_samples: Optional[list[str]],
              indexing: Literal["feature", "sample"],
              order: Literal["feature", "sample"],
              skip_errors: bool,
@@ -284,7 +283,7 @@ class ShowCommand(Command):
     @classmethod
     def main(cls,
              extractor_or_dataloader: str,
-             dataset_args: Optional[Dict[str, Any]],
+             dataset_args: Optional[dict[str, Any]],
              output_file: Optional[Path],
              dag: bool,
              **kwargs):

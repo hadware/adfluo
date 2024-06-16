@@ -1,5 +1,5 @@
 import warnings
-from typing import List, Union, Dict, Any, Iterable
+from typing import Any, Union
 
 from .cache import SingleValueCache
 from .dataset import Sample, DictSample
@@ -9,8 +9,9 @@ from .extraction_graph import SampleProcessorNode, FeatureNode, InputNode, Featu
 from .processors import ProcessorBase, SampleProcessor, \
     Input, Feat, DatasetAggregator, DSInput, DSFeat
 
+
 PipelineElement = Union['ExtractionPipeline', ProcessorBase]
-ProcessorNode = Union[SampleProcessorNode, AggregatorNode]
+ProcessorNode = SampleProcessorNode | AggregatorNode
 
 
 def wrap_processor(proc: ProcessorBase) -> ProcessorNode:
@@ -34,9 +35,9 @@ def wrap_processor(proc: ProcessorBase) -> ProcessorNode:
 class ExtractionPipeline:
 
     def __init__(self):
-        self.inputs: List[ProcessorNode] = []
-        self.outputs: List[ProcessorNode] = []
-        self.all_nodes: List[ProcessorNode] = []
+        self.inputs: list[ProcessorNode] = []
+        self.outputs: list[ProcessorNode] = []
+        self.all_nodes: list[ProcessorNode] = []
 
     @property
     def nb_inputs(self):
@@ -47,7 +48,7 @@ class ExtractionPipeline:
         return len(self.outputs)
 
     def check_aggregations(self):
-        stack: List[ProcessorNode] = [node for node in self.all_nodes
+        stack: list[ProcessorNode] = [node for node in self.all_nodes
                                       if isinstance(node, (DatasetInputNode, AggregatorNode))]
         node_added_to_stack = True
         single_value_nodes = []
@@ -178,7 +179,7 @@ class ExtractionPipeline:
             raise PipelineBuildError(PIPELINE_TYPE_ERROR.format(obj_type=type(other)))
         return self
 
-    def __call__(self, sample: Union[Sample, Dict[str, Any]]) -> Dict[FeatureName, Any]:
+    def __call__(self, sample: Sample | dict[str, Any]) -> dict[FeatureName, Any]:
         # TODO: add support for datasets:
         #  - actually any input is a dataset (wrap sample with fake dataset)
         #  - add a rootnode and then remove it (needed for aggs)
@@ -186,7 +187,7 @@ class ExtractionPipeline:
 
         if isinstance(sample, dict):
             sample = DictSample(sample, 0)
-        output_dict: Dict[FeatureName, Any] = {}
+        output_dict: dict[FeatureName, Any] = {}
         # TODO: catch some errors (due to unsolved features/batch proc with no dataset)
         #  and "contextualize" them
         for output_node in self.outputs:
@@ -206,14 +207,14 @@ class ExtractionPipeline:
             warnings.warn(str(err))
 
 
-def parallel(list_procs: List[PipelineElement]) -> ExtractionPipeline:
+def parallel(list_procs: list[PipelineElement]) -> ExtractionPipeline:
     pl = ExtractionPipeline()
     for el in list_procs:
         pl = pl | el
     return pl
 
 
-def sequence(list_procs: List[PipelineElement]) -> ExtractionPipeline:
+def sequence(list_procs: list[PipelineElement]) -> ExtractionPipeline:
     pl = ExtractionPipeline()
     for el in list_procs:
         pl = pl >> el

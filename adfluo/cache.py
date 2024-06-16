@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Dict, Set, Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from .dataset import Sample
 from .exceptions import BadSampleException
@@ -34,9 +34,9 @@ class SampleCache(BaseCache):
 
     def __init__(self, node: 'BaseGraphNode'):
         super().__init__(node)
-        self._samples_cache: Dict[SampleID, Any] = dict()
-        self._samples_cache_hits: Dict[SampleID, int] = dict()
-        self._failed_samples: Set[SampleID] = set()
+        self._samples_cache: dict[SampleID, Any] = dict()
+        self._samples_cache_hits: dict[SampleID, int] = dict()
+        self._failed_samples: set[SampleID] = set()
 
     def __setitem__(self, sample: Sample, data: SampleData):
         self._samples_cache[sample.id] = data
@@ -64,7 +64,7 @@ class SampleCache(BaseCache):
     def reset(self):
         self._samples_cache = dict()
         self._samples_cache_hits = dict()
-        self._failed_samples: Set[SampleID] = set()
+        self._failed_samples: set[SampleID] = set()
 
 
 class SingleValueCache(BaseCache):

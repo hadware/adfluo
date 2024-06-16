@@ -2,7 +2,7 @@ from abc import abstractmethod, ABCMeta
 from dataclasses import dataclass
 from dis import get_instructions
 from inspect import signature
-from typing import Any, List, Tuple, Callable, TYPE_CHECKING, Hashable, Optional, Union, Set, Iterable, Dict, Type
+from typing import Any, Callable, TYPE_CHECKING, Hashable, Optional, Iterable, Type
 
 from sortedcontainers import SortedDict
 
@@ -105,17 +105,17 @@ class ProcessorBase(metaclass=ABCMeta):
         pass
 
     @property
-    def class_params(self) -> Set[str]:
+    def class_params(self) -> set[str]:
         # TODO: maybe use dir(self.__class__) to allow for inheritance
         return {k for k, v in self.__class__.__dict__.items()
                 if isinstance(v, ProcessorParameter)}
 
     @property
-    def hparams(self) -> Set[str]:
+    def hparams(self) -> set[str]:
         return set(self._hparams.keys())
 
     @property
-    def unset_hparams(self) -> Set[str]:
+    def unset_hparams(self) -> set[str]:
         return {hparam.name for hparam in self.__dict__.values()
                 if isinstance(hparam, ExtractorHyperParameter)}
 
@@ -126,7 +126,7 @@ class ProcessorBase(metaclass=ABCMeta):
             param_dict[k] = getattr(self, k, None)
         return param_dict
 
-    def set_hparams(self, **hparams: Dict[str, Any]):
+    def set_hparams(self, **hparams: dict[str, Any]):
         # setting only the hparams that are injected in this processors
         for hparam_name in set(self._hparams.keys()) | self.hparams:
             hparam, hparam_attr = self._hparams[hparam_name]
@@ -197,7 +197,7 @@ class SampleProcessor(ProcessorBase, metaclass=ABCMeta):
         except KeyError:
             return Any
 
-    def __call__(self, sample: Sample, sample_data: Tuple[Any]) -> Any:
+    def __call__(self, sample: Sample, sample_data: tuple[Any]) -> Any:
         self._current_sample = sample
         return self.process(*sample_data)
 
@@ -267,11 +267,11 @@ class ListWrapperProcessor(SampleProcessor):
     @property
     def output_type(self):
         try:
-            return List[self.process.proc["return"]]
+            return list[self.process.proc["return"]]
         except KeyError:
             return Any
 
-    def process(self, arg: Iterable[Any]) -> List[Any]:
+    def process(self, arg: Iterable[Any]) -> list[Any]:
         return [self.proc(self._current_sample, (sub_sample,)) for sub_sample in arg]
 
 
@@ -335,7 +335,7 @@ class LoggerProcessor(SampleProcessor):
         super().__init__(name=name)
         self.formatter = formatter
 
-    def process(self, *args) -> Tuple:
+    def process(self, *args) -> tuple:
         msg = str(self.formatter(*args)) if self.formatter is not None else str(args)
         if self.name is not None:
             msg = f"{self.name}: {msg}"
@@ -358,7 +358,7 @@ class BaseFeat(SampleProcessor, metaclass=ABCMeta):
         self.custom_storage = storage
         self.default = default
 
-    def process(self, *args) -> Tuple:
+    def process(self, *args) -> tuple:
         return args[0]
 
 
@@ -401,10 +401,10 @@ class DatasetAggregator(ProcessorBase, metaclass=ABCMeta):
             return Any
 
     @abstractmethod
-    def aggregate(self, samples_data: Union[List[Any], List[Tuple[Any, ...]]]) -> Any:
+    def aggregate(self, samples_data: list[Any] | list[tuple[Any, ...]]) -> Any:
         pass
 
-    def __call__(self, samples_data: Dict[SampleID, Tuple[Any, ...]]):
+    def __call__(self, samples_data: dict[SampleID, tuple[Any, ...]]):
         # Call aggregate
         first_value = next(iter(samples_data.values()))
         if len(first_value) == 1:
@@ -418,7 +418,7 @@ class FunctionWrapperAggregator(FunctionWrapperMixin, DatasetAggregator):
     def __repr__(self):
         return f"Aggregator({self.fun.__name__})"
 
-    def aggregate(self, samples_data: List[Union[Any, Tuple]]) -> Any:
+    def aggregate(self, samples_data: list[Any | tuple]) -> Any:
         return self.fun(samples_data)
 
 

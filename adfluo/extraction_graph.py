@@ -2,10 +2,7 @@ import sys
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import deque
-from typing import List, Dict, Any, Optional, Iterable, Deque, Set, TYPE_CHECKING, Type, Tuple, Callable
-
-from rich.progress import track
-from tqdm import tqdm
+from typing import Any, Optional, Iterable, Deque, TYPE_CHECKING, Type, Callable
 
 from .cache import BaseCache, SingleValueCache, SampleCache
 from .dataset import DatasetLoader, Sample, DictSample
@@ -24,8 +21,8 @@ class BaseGraphNode(metaclass=ABCMeta):
     extraction_policy = ExtractionPolicy()
 
     def __init__(self):
-        self.children: List['BaseGraphNode'] = []
-        self.parents: List['BaseGraphNode'] = []
+        self.children: list['BaseGraphNode'] = []
+        self.parents: list['BaseGraphNode'] = []
         self._depth: Optional[int] = None
 
     @abstractmethod
@@ -238,7 +235,7 @@ class RootNode(BaseGraphNode):
 
     def __init__(self):
         super().__init__()
-        self.children: List[BaseInputNode] = []
+        self.children: list[BaseInputNode] = []
         self.parents = None
         self._loader: Optional[DatasetLoader] = None
         self._depth = 0
@@ -277,23 +274,23 @@ class ExtractionDAG:
     def __init__(self):
         # stores all the processing (input, feature and processor) nodes from
         # the dag
-        self.nodes: Set[BaseGraphNode] = set()
+        self.nodes: set[BaseGraphNode] = set()
         # stores only the feature nodes
-        self.feature_nodes: Dict[str, FeatureNode] = dict()
+        self.feature_nodes: dict[str, FeatureNode] = dict()
         # stores only the feature nodes
-        self.dataset_features_nodes: Dict[str, DatasetFeatureNode] = dict()
+        self.dataset_features_nodes: dict[str, DatasetFeatureNode] = dict()
         # one and only root from the DAG
         self.root_node: RootNode = RootNode()
         self._loader: Optional[DatasetLoader] = None
         self._needs_dependency_solving = False
-        self._features_order: Optional[List[FeatureName]] = None
+        self._features_order: Optional[list[FeatureName]] = None
 
     @property
-    def features(self) -> Set[str]:
+    def features(self) -> set[str]:
         return set(self.feature_nodes.keys())
 
     @property
-    def dataset_features(self) -> Set[str]:
+    def dataset_features(self) -> set[str]:
         return set(self.dataset_features_nodes.keys())
 
     @property
@@ -301,12 +298,12 @@ class ExtractionDAG:
         return self.features | self.dataset_features
 
     @property
-    def inputs(self) -> Set[str]:
+    def inputs(self) -> set[str]:
         return set(input_node.data_name for input_node in self.root_node.children
                    if isinstance(input_node, InputNode))
 
     @property
-    def dataset_inputs(self) -> Set[str]:
+    def dataset_inputs(self) -> set[str]:
         return set(input_node.data_name for input_node in self.root_node.children
                    if isinstance(input_node, DatasetInputNode))
 
@@ -334,7 +331,7 @@ class ExtractionDAG:
         # first, checking that the pipeline is right
         pipeline.check()
 
-        feature_nodes: List[BaseFeatureNode] = pipeline.outputs
+        feature_nodes: list[BaseFeatureNode] = pipeline.outputs
         nodes_stack: Deque[BaseGraphNode] = deque(feature_nodes)
         # registering feature nodes (and checking that they're not already present)
         for feat_node in feature_nodes:
@@ -445,7 +442,7 @@ class ExtractionDAG:
         # building the initial stack with all the leaf feature nodes
         # (features that have children are omitted, they might be useful for
         #  some kept features)
-        stack: List[BaseGraphNode] = [self.feature_nodes[feat] for feat in removed_features
+        stack: list[BaseGraphNode] = [self.feature_nodes[feat] for feat in removed_features
                                       if len(self.feature_nodes[feat].children) == 0]
 
         # - all the nodes that don't have any more children are removed from the DAG
@@ -477,7 +474,7 @@ class ExtractionDAG:
         self.root_node.set_loader(loader)
 
     def extract_feature_wise(self, feature_name: str, progress_iterator: ProgressIterator, ) \
-            -> Dict[SampleID, Any]:
+            -> dict[SampleID, Any]:
         """Extract a feature for all samples"""
         self.solve_dependencies()
 
@@ -500,7 +497,7 @@ class ExtractionDAG:
         return feat_dict
 
     def extract_sample_wise(self, sample: Sample, progress_iterator: ProgressIterator, ) \
-            -> Dict[FeatureName, Any]:
+            -> dict[FeatureName, Any]:
         """Extract all features for a unique sample"""
         self.solve_dependencies()
 
@@ -516,7 +513,7 @@ class ExtractionDAG:
         return feat_dict
 
     def extract_dataset_features(self, progress_iterator: ProgressIterator,
-                                 subset: Optional[Set[str]] = None) -> Iterable[Tuple[FeatureName, Any]]:
+                                 subset: Optional[set[str]] = None) -> Iterable[tuple[FeatureName, Any]]:
         for feature_name, feature_node in progress_iterator(self.dataset_features_nodes.items()):
             if subset is not None and feature_name not in subset:
                 continue

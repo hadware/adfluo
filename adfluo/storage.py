@@ -4,7 +4,7 @@ import pickle
 from collections import defaultdict
 from csv import Dialect
 from pathlib import Path
-from typing import Optional, TextIO, Dict, Any, BinaryIO, Set, TYPE_CHECKING, Tuple, Union, Iterator
+from typing import Optional, TextIO, Any, BinaryIO, TYPE_CHECKING, Iterator
 
 from typing_extensions import Protocol
 
@@ -31,14 +31,14 @@ class BaseStorage:
 
     def __init__(self, indexing: StorageIndexing):
         self.indexing = indexing
-        self._data: Dict[SampleID, Dict[FeatureName, Any]] = defaultdict(dict)
-        self._features: Set[FeatureName] = set()
+        self._data: dict[SampleID, dict[FeatureName, Any]] = defaultdict(dict)
+        self._features: set[FeatureName] = set()
 
     @staticmethod
-    def flatten_tuple(t: Tuple[Any], separator: str):
+    def flatten_tuple(t: tuple[Any, ...], separator: str):
         return separator.join(str(v) for v in t)
 
-    def flatten_dict(self, data : Union[Dict[str, Any], Any], feat_name: Optional[str], separator: str = "_") -> Iterator[Tuple[str, Any]]:
+    def flatten_dict(self, data : dict[str, Any] | Any, feat_name: Optional[str], separator: str = "_") -> Iterator[tuple[str, Any]]:
         if not isinstance(data, dict):
             yield feat_name, data
         else:
@@ -62,7 +62,7 @@ class BaseStorage:
         else, raises an error"""
         pass
 
-    def store_feat(self, feature: str, data: Dict[SampleID, Any], flatten: bool = False):
+    def store_feat(self, feature: str, data: dict[SampleID, Any], flatten: bool = False):
         if flatten:
             for sample_id, sample_feat in data.items():
                 for feat_name, feat_value in self.flatten_dict(sample_feat, feature):
@@ -73,7 +73,7 @@ class BaseStorage:
             for sample_id, value in data.items():
                 self._data[sample_id][feature] = value
 
-    def store_sample(self, sample: Sample, data: Dict[FeatureName, Any], flatten: bool = False):
+    def store_sample(self, sample: Sample, data: dict[FeatureName, Any], flatten: bool = False):
         if flatten:
             data = dict(self.flatten_dict(data, feat_name=None))
         self._features.update(set(data.keys()))
@@ -140,13 +140,13 @@ class SplitPickleStorage(BaseStorage):
         self.folder = output_folder
         self.streaming = streaming
 
-    def store_sample(self, sample: Sample, data: Dict[FeatureName, Any], flatten: bool = False):
+    def store_sample(self, sample: Sample, data: dict[FeatureName, Any], flatten: bool = False):
         super().store_sample(sample, data, flatten)
         # if the indexing allows it, dumping all stored data to disk and clearing current storage
         if self.indexing == "sample" and self.streaming:
             self.flush()
 
-    def store_feat(self, feature: str, data: Dict[SampleID, Any], flatten: bool = False):
+    def store_feat(self, feature: str, data: dict[SampleID, Any], flatten: bool = False):
         super().store_feat(feature, data, flatten)
         # if the indexing allows it, dumping all stored data to disk and clearing current storage
         if self.indexing == "feature" and self.streaming:

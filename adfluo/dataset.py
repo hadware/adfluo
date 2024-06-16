@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Dict, Any, Union, Sized, Callable
+from typing import Iterable, Any, Sized, Callable
 
 from adfluo.types import SampleID
 
@@ -15,7 +15,7 @@ class Sample(ABC):
 
     @property
     @abstractmethod
-    def id(self) -> Union[str, int]:
+    def id(self) -> str | int:
         raise NotImplementedError()
 
     def __hash__(self):
@@ -30,7 +30,7 @@ class Sample(ABC):
 
 class DictSample(Sample):
 
-    def __init__(self, sample_dict: Dict[str, Any], sample_id: int):
+    def __init__(self, sample_dict: dict[str, Any], sample_id: int):
         self.sample_id = sample_dict.get("id", str(sample_id))
         self.sample_dict = sample_dict
 
@@ -64,8 +64,8 @@ class DatasetLoader(ABC, Iterable, Sized):
 
 class ListLoader(DatasetLoader):
 
-    def __init__(self, samples: List[Union[Dict, Sample]]):
-        self._samples: List[Sample] = []
+    def __init__(self, samples: list[dict | Sample]):
+        self._samples: list[Sample] = []
         # Wrapping dictionnaries in a sample dict
         for i, sample in enumerate(samples):
             if isinstance(sample, dict):
@@ -83,7 +83,7 @@ class SubsetLoader(DatasetLoader):
     """Dataset wrapper that keeps only a definite subset of the original dataset's
     samples"""
 
-    def __init__(self, dataset: DatasetLoader, kept_samples: List[SampleID]):
+    def __init__(self, dataset: DatasetLoader, kept_samples: list[SampleID]):
         self.dataset = dataset
         self.kept_samples = set(kept_samples)
 
@@ -107,7 +107,7 @@ class FolderLoader(ListLoader):
         loader_fn: LoaderFn
 
         @property
-        def id(self) -> Union[str, int]:
+        def id(self) -> str | int:
             return str(self.path.relative_to(self.folder))
 
         def __getitem__(self, data_name: str) -> Any:

@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from types import TracebackType
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
-from adfluo import Sample
-from adfluo.types import SampleID
+from . import Sample
+from .types import SampleID
 
 if TYPE_CHECKING:
     from adfluo.processors import SampleProcessor

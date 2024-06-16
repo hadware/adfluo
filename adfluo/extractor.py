@@ -1,11 +1,11 @@
+import sys
 import warnings
 from csv import Dialect
 from functools import partial
 from itertools import chain
 from pathlib import Path
-from typing import Union, Optional, TextIO, BinaryIO, TYPE_CHECKING, List, Dict, Set
+from typing import Optional, TextIO, BinaryIO, TYPE_CHECKING, Union
 
-import sys
 from rich.progress import track
 from tqdm import tqdm
 from typing_extensions import Literal, Any
@@ -21,7 +21,7 @@ from .types import StorageIndexing
 from .utils import logger, ExtractionPolicy
 
 ExtractionOrder = Literal["feature", "sample"]
-Dataset = Union[DatasetLoader, List[Dict], List[Sample]]
+Dataset = DatasetLoader | list[dict] | list[Sample]
 
 if TYPE_CHECKING:
     try:
@@ -34,14 +34,14 @@ class Extractor:
     def __init__(self, show_progress=True):
         self.extraction_DAG = ExtractionDAG()
         self.show_progress = show_progress
-        self.dropped_features: Set[FeatureName] = set()
+        self.dropped_features: set[FeatureName] = set()
 
     @property
-    def hparams(self) -> Set[str]:
+    def hparams(self) -> set[str]:
         return set(chain.from_iterable(node.processor.hparams for node in self.extraction_DAG.nodes
                                        if isinstance(node, (SampleProcessorNode, AggregatorNode))))
 
-    def set_hparams(self, params: Dict[str, Any]):
+    def set_hparams(self, params: dict[str, Any]):
         assert set(params.keys()) == self.hparams
         for node in self.extraction_DAG.nodes:
             if isinstance(node, (SampleProcessorNode, AggregatorNode)):
@@ -162,7 +162,7 @@ class Extractor:
 
     def extract_to_csv(self,
                        dataset: Dataset,
-                       output_file: Union[str, Path, TextIO],
+                       output_file: str | Path | TextIO,
                        extraction_order: ExtractionOrder = "feature",
                        storage_indexing: StorageIndexing = "sample",
                        flatten_features: bool = False,
@@ -185,7 +185,7 @@ class Extractor:
 
     def extract_to_pickle(self,
                           dataset: Dataset,
-                          output_file: Union[str, Path, BinaryIO],
+                          output_file: str | Path | BinaryIO,
                           extraction_order: ExtractionOrder = "feature",
                           storage_indexing: StorageIndexing = "sample",
                           flatten_features: bool = False,
@@ -208,7 +208,7 @@ class Extractor:
 
     def extract_to_json(self,
                         dataset: Dataset,
-                        output_file: Union[str, Path, TextIO],
+                        output_file: str | Path | TextIO,
                         extraction_order: ExtractionOrder = "feature",
                         storage_indexing: StorageIndexing = "sample",
                         flatten_features: bool = False,
@@ -232,7 +232,7 @@ class Extractor:
 
     def extract_to_pickle_files(self,
                                 dataset: Dataset,
-                                output_folder: Union[str, Path],
+                                output_folder: str | Path,
                                 extraction_order: ExtractionOrder = "sample",
                                 storage_indexing: StorageIndexing = "sample",
                                 flatten_features: bool = False,
