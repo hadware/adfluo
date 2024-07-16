@@ -9,13 +9,15 @@ from collections import Counter
 from importlib import import_module
 from pathlib import Path
 from pprint import pprint
-from typing import Optional, Literal, Any
+from typing import Optional, Literal, Any, Type
 
 from rich.progress import track
 
 from adfluo import DatasetLoader, Extractor, Sample
 from adfluo.dataset import ListLoader, SubsetLoader
-from adfluo.types import StorageFormat
+from adfluo.extractor import ExtractionOrder
+from adfluo.storage import CSVStorage, JSONStorage, PickleStorage, BaseFileBasedStorage
+from adfluo.types import StorageFormat, StorageIndexing
 from .utils import logger
 
 
@@ -133,7 +135,8 @@ class ExtractCommand(Command):
                                  "but prevents memory overflows")
         parser.add_argument("--storage_format", "-sf", type=str,
                             choices=["csv", "json", "df", "pickle", "split-pickle", "hdf5"],
-                            help="Storage format for the extracted features")
+                            help="Storage format for the extracted features. "
+                                 "If none is specified, will be autodetect from file extension")
 
         parser.add_argument("--hide_progress",
                             action="store_true",
@@ -166,8 +169,8 @@ class ExtractCommand(Command):
              exclude_feats: Optional[list[str]],
              samples: Optional[list[str]],
              exclude_samples: Optional[list[str]],
-             indexing: Literal["feature", "sample"],
-             order: Literal["feature", "sample"],
+             indexing: StorageIndexing,
+             order: ExtractionOrder,
              skip_errors: bool,
              no_caching: bool,
              storage_format: Optional[StorageFormat],
@@ -346,8 +349,60 @@ class ShowCommand(Command):
                   "or an extractor instance")
 
 
+class MergeCommand(Command):
+    COMMAND = "merge"
+    DESCRIPTION = "Merge two or more extraction results into one"
+
+    @staticmethod
+    def init_parser(parser: ArgumentParser):
+        parser.add_argument("inputs", type=Path, nargs="+",
+                            help="Input paths to extractions that you want to merge together.")
+        parser.add_argument("--output", "-o", type=Path, required=True,
+                            help="Output file path or folder (depending on format)")
+        parser.add_argument("--indexing",
+                            choices=["feature", "sample"],
+                            default="sample",
+                            help="Storage indexing policy for both inputs and output")
+        parser.add_argument("--storage_format", "-sf", type=str,
+                            choices=["csv", "json", "df", "pickle", "split-pickle", "hdf5"],
+                            help="Storage format for both the inputs and output extractions files. "
+                                 "If none is specified, will be autodetect from output file extension")
+
+    @classmethod
+    def main(cls,
+             inputs: list[Path],
+             output: Path,
+             indexing: StorageIndexing,
+             storage_format: Optional[StorageFormat],
+             **kwargs):
+        storage_format = ExtractCommand.storage_format_heuristic(output, storage_format)
+        if storage_format is None:
+            return logger.error("Couldn't determine a storage format")
+
+        storage_class: Type[BaseFileBasedStorage]
+        if storage_format in {"csv", "json"}:
+            storage_class = CSVStorage if storage_format == "csv" else JSONStorage
+            writemode = "w"
+        else:
+            if storage_format == "pickle":
+                storage_class = PickleStorage
+                writemode = "wb"
+            else:
+                return logger.error(f"Storage format {storage_format} not yet supported for this command")
+
+        with output.open(writemode) as out_f:
+            storage = storage_class(indexing, out_f)
+            for input_path in inputs:
+                logger.info(f"Merging {input_path}")
+                storage.load_from_file(input_path)
+
+            logger.info(f"Writing merged extraction to {output}")
+            storage.write()
+
+
 commands = [ExtractCommand,
-            ShowCommand]
+            ShowCommand,
+            MergeCommand]
 
 argparser = ArgumentParser()
 argparser.add_argument("-v", "--verbose",

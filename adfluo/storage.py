@@ -36,7 +36,8 @@ class BaseStorage:
     def flatten_tuple(t: tuple[Any, ...], separator: str):
         return separator.join(str(v) for v in t)
 
-    def flatten_dict(self, data : dict[str, Any] | Any, feat_name: Optional[str], separator: str = "_") -> Iterator[tuple[str, Any]]:
+    def flatten_dict(self, data: dict[str, Any] | Any, feat_name: Optional[str], separator: str = "_") -> Iterator[
+        tuple[str, Any]]:
         if not isinstance(data, dict):
             yield feat_name, data
         else:
@@ -90,7 +91,27 @@ class BaseStorage:
         return dict(out_data)
 
 
-class CSVStorage(BaseStorage):
+class BaseFileBasedStorage(BaseStorage):
+
+    def write(self):
+        raise NotImplementedError()
+
+    def load_from_file(self, path: Path):
+        file_data = self.load(path)
+        if self.indexing == "sample":
+            for sample_id, feature_dict in file_data.items():
+                self.store_sample(sample_id, feature_dict)
+        else:  # feature indexing
+            for feature_name, sample_dict in file_data.items():
+                self.store_feat(feature_name, sample_dict)
+
+    def load(self, path: Path) -> dict:
+        raise NotImplementedError()
+
+
+class CSVStorage(BaseFileBasedStorage):
+    SAMPLE_ID_ROW_NAME = "sample_id"
+    FEATURE_ROW_NAME = "feature"
 
     def __init__(self,
                  indexing: StorageIndexing,
@@ -103,10 +124,10 @@ class CSVStorage(BaseStorage):
     def write(self):
         data = self.get_data()
         if self.indexing == "sample":
-            index_column = "sample_id"
+            index_column = self.SAMPLE_ID_ROW_NAME
             fields = [index_column] + sorted(list(self._features))
         else:
-            index_column = "feature"
+            index_column = self.FEATURE_ROW_NAME
             fields = [index_column] + sorted(list(self._data.keys()))
         writer = csv.DictWriter(self.file, fieldnames=fields, dialect=self.dialect)
         writer.writeheader()
@@ -115,8 +136,17 @@ class CSVStorage(BaseStorage):
             row_dict.update(**data)
             writer.writerow(row_dict)
 
+    def load(self, path: Path) -> dict:
+        with path.open() as f:
+            reader = csv.DictReader(f, dialect=self.dialect)
+            data = {}
+            for row in reader:
+                id_column = self.SAMPLE_ID_ROW_NAME if self.indexing == "sample" else self.FEATURE_ROW_NAME
+                id_value = row.pop(id_column)
+                data[id_value] = row
+            return data
 
-class PickleStorage(BaseStorage):
+class PickleStorage(BaseFileBasedStorage):
 
     def __init__(self,
                  indexing: StorageIndexing,
@@ -127,8 +157,12 @@ class PickleStorage(BaseStorage):
     def write(self):
         pickle.dump(self.get_data(), self.file)
 
+    def load(self, path: Path) -> dict:
+        with path.open("rb") as f:
+            return pickle.load(f)
 
-class SplitPickleStorage(BaseStorage):
+
+class SplitPickleStorage(BaseFileBasedStorage):
 
     def __init__(self,
                  indexing: StorageIndexing,
@@ -163,7 +197,7 @@ class SplitPickleStorage(BaseStorage):
                 pickle.dump(data, pkfile)
 
 
-class JSONStorage(BaseStorage):
+class JSONStorage(BaseFileBasedStorage):
 
     def __init__(self,
                  indexing: StorageIndexing,
@@ -177,6 +211,10 @@ class JSONStorage(BaseStorage):
     def write(self):
         json.dump(self.get_data(), self.file)
 
+    def load(self, path: Path) -> dict:
+        with path.open() as f:
+            return json.load(f)
+
 
 class DataFrameStorage(BaseStorage):
 
@@ -186,5 +224,5 @@ class DataFrameStorage(BaseStorage):
         return pd.DataFrame.from_dict(data)
 
 
-class HDF5Storage(BaseStorage):
+class HDF5Storage(BaseFileBasedStorage):
     pass  # TODO
