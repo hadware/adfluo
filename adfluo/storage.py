@@ -6,7 +6,7 @@ from csv import Dialect
 from pathlib import Path
 from typing import Optional, TextIO, Any, BinaryIO, TYPE_CHECKING, Iterator, Protocol
 
-from .dataset import Sample
+from .dataset import Sample, DictSample
 from .types import StorageIndexing, FeatureName, SampleID
 
 if TYPE_CHECKING:
@@ -100,7 +100,7 @@ class BaseFileBasedStorage(BaseStorage):
         file_data = self.load(path)
         if self.indexing == "sample":
             for sample_id, feature_dict in file_data.items():
-                self.store_sample(sample_id, feature_dict)
+                self.store_sample(DictSample(feature_dict, sample_id), feature_dict)
         else:  # feature indexing
             for feature_name, sample_dict in file_data.items():
                 self.store_feat(feature_name, sample_dict)
