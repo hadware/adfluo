@@ -271,23 +271,27 @@ class ShowCommand(Command):
     def init_parser(parser: ArgumentParser):
         # TODO: add dataset args
         parser.add_argument("extractor_or_dataloader", type=str,
-                            help="Either a DataLoader or Extractor instance in the current Namespace")
+                            help="An Extractor instance, or a Dataloader instance or class from the current namespace. "
+                                 "Eg: myproject.script.extractor, or myproject.dataloaders.MyDataLoader")
         parser.add_argument("--dataset_args", "-ds", nargs="*",
                             action=StoreNameValuePairs,
                             help="If the dataset argument is a class, "
                                  "these are passed as the class's "
                                  "instantiation parameters")
+        parser.add_argument("--test_inputs", "-in", nargs="*", type=str,
+                            help="For a datasetloader, test if the following input names are working properly")
         parser.add_argument("--output_file", "-o", type=Path,
                             help="Output file path for the extraction DAG's plot")
         # TODO : option to show DAG tree if possible
         parser.add_argument("--dag", action="store_true",
-                            help="If we're dealing ")
+                            help="If the ")
 
     @classmethod
     def main(cls,
              extractor_or_dataloader: str,
              dataset_args: Optional[dict[str, Any]],
              output_file: Optional[Path],
+             test_inputs: Optional[list[str]],
              dag: bool,
              **kwargs):
         obj = import_obj(extractor_or_dataloader)
@@ -335,15 +339,40 @@ class ShowCommand(Command):
             print("Testing loading of all samples...")
             samples_it = iter(obj)
             error_count = 0
+            valid_samples = set()
             for _ in track(range(len(obj))):
                 try:
                     sample = next(samples_it)
+                    valid_samples.add(sample.id)
                 except StopIteration:
-                    pass
+                    break
                 except Exception as err:
                     print(f"WARNING: On sample {sample.id} got error {err}")
                     error_count += 1
             print(f"Got {len(obj) - error_count} valid samples and {error_count} errors")
+
+            if test_inputs is not None and test_inputs:
+                print("Testing inputs for samples")
+
+                for input_name in test_inputs:
+                    error_count = 0
+                    print(f"Testing input {input_name}...")
+                    samples_it = iter(obj)
+                    for _ in track(range(len(obj))):
+                        try:
+                            sample = next(samples_it)
+                        except StopIteration:
+                            break
+                        except Exception:
+                            pass
+
+                        try:
+                            _ = sample[input_name]
+                        except Exception as err:
+                            print(f"WARNING: On sample {sample.id} got error {err}")
+                            error_count += 1
+                    print(f"Got {len(valid_samples) - error_count} valid samples and {error_count} errors")
+
         else:
             print("Unsupported object: should be either a dataloader instance or class, "
                   "or an extractor instance")
