@@ -178,8 +178,11 @@ class BaseFeatureNode(SampleProcessorNode):
             raise RuntimeError(f"No parents for feature node for feature "
                                f"{self.processor.feat_name}. "
                                f"Node has no parents.")
+        return super().compute_sample(sample)
+
+    def __getitem__(self, sample: Sample) -> SampleData:
         try:
-            return super().compute_sample(sample)
+            return super().__getitem__(sample)
         except BadSampleException as err:
             if self.processor.default is not None:
                 default = self.processor.default
